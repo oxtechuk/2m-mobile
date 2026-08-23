@@ -1,0 +1,255 @@
+@import "https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --primary: #D41414;
+    --primary-dark: #A30F0F;
+    --primary-light: #F04848;
+    --dark: #050505;
+    --dark-gray: #121212;
+    --medium-gray: #1E1E1E;
+    --light-gray: #2D2D2D;
+    --text-muted: #A0A0A0;
+}
+
+body {
+    font-family: 'Cairo', sans-serif !important;
+    background-color: var(--dark) !important;
+    color: #F3F4F6 !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: var(--dark);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+    background: rgba(30, 30, 30, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+}
+
+.glass-card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.glass-card-hover:hover {
+    transform: translateY(-4px);
+    border-color: rgba(212, 20, 20, 0.3);
+    box-shadow: 0 10px 20px rgba(212, 20, 20, 0.1);
+}
+
+/* Glow effects */
+.glow-primary {
+    box-shadow: 0 0 15px rgba(212, 20, 20, 0.4);
+}
+.text-glow-primary {
+    text-shadow: 0 0 8px rgba(212, 20, 20, 0.6);
+}
+
+/* Sidebar Active states */
+.sidebar-link-active {
+    background: linear-gradient(90deg, rgba(212, 20, 20, 0.2) 0%, rgba(212, 20, 20, 0.05) 100%);
+    border-right: 4px solid var(--primary);
+    color: #FFFFFF !important;
+}
+
+/* Light Theme Overrides */
+html.light body {
+    background-color: #f9fafb !important;
+    color: #1f2937 !important;
+}
+html.light .glass-panel {
+    background: rgba(255, 255, 255, 0.8) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+/* =========================================================
+   SOLID ACTION BUTTONS TEXT COLOR FIX (PURE WHITE ON FILLED BUTTONS)
+   ========================================================= */
+.bg-\[\#D41414\],
+.bg-\[\#A30F0F\],
+button.bg-\[\#D41414\],
+a.bg-\[\#D41414\],
+button.bg-red-600,
+a.bg-red-600,
+button.bg-rose-600,
+a.bg-rose-600,
+button.bg-emerald-600,
+a.bg-emerald-600,
+button.bg-blue-600,
+a.bg-blue-600,
+button.bg-gray-800,
+a.bg-gray-800,
+.glow-primary,
+.btn-primary,
+.btn-print,
+.btn-direct-print {
+    color: #FFFFFF !important;
+}
+
+.bg-\[\#D41414\] *,
+.bg-\[\#A30F0F\] *,
+button.bg-\[\#D41414\] *,
+a.bg-\[\#D41414\] *,
+button.bg-red-600 *,
+a.bg-red-600 *,
+.btn-primary *,
+.btn-print *,
+.btn-direct-print * {
+    color: #FFFFFF !important;
+}
+
+html.light .text-white {
+    color: #111827;
+}
+html.light .bg-\[\#D41414\] .text-white,
+html.light button.bg-\[\#D41414\] .text-white,
+html.light a.bg-\[\#D41414\] .text-white,
+html.light .glow-primary .text-white {
+    color: #FFFFFF !important;
+}
+html.light .text-gray-300 {
+    color: #374151 !important;
+}
+html.light .text-gray-400 {
+    color: #4b5563 !important;
+}
+html.light .text-gray-500 {
+    color: #6b7280 !important;
+}
+
+/* Light Theme Sidebar and Header elements */
+html.light aside button {
+    color: #374151 !important;
+}
+html.light aside button:hover {
+    color: #111827 !important;
+}
+html.light header button {
+    color: #374151 !important;
+}
+
+html.light .bg-\[\#0a0a0a\],
+html.light .bg-\[\#0e0e0e\],
+html.light .bg-\[\#050505\],
+html.light .bg-\[\#030303\],
+html.light .bg-\[\#121212\],
+html.light .bg-\[\#141414\] {
+    background-color: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+}
+html.light .border-white\/5,
+html.light .border-white\/10 {
+    border-color: rgba(0, 0, 0, 0.08) !important;
+}
+html.light input,
+html.light select,
+html.light textarea {
+    background-color: #f3f4f6 !important;
+    color: #111827 !important;
+    border-color: rgba(0, 0, 0, 0.12) !important;
+}
+html.light input::placeholder {
+    color: #9ca3af !important;
+}
+html.light .divide-white\/5 > * + * {
+    border-color: rgba(0, 0, 0, 0.08) !important;
+}
+html.light .hover\:bg-white\/5:hover {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+}
+html.light .bg-white\/5 {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+}
+html.light .border-white\/10 {
+    border-color: rgba(0, 0, 0, 0.1) !important;
+}
+html.light aside {
+    background-color: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+}
+html.light aside .bg-\[\#0a0a0a\],
+html.light aside .bg-\[\#121212\] {
+    background-color: #f9fafb !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+}
+html.light header {
+    background-color: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+}
+html.light aside .text-gray-400 {
+    color: #4b5563 !important;
+}
+html.light aside .text-gray-400:hover {
+    color: #111827 !important;
+    background-color: rgba(0, 0, 0, 0.03) !important;
+}
+html.light aside .sidebar-link-active {
+    background: linear-gradient(90deg, rgba(212, 20, 20, 0.1) 0%, rgba(212, 20, 20, 0.02) 100%) !important;
+    color: #D41414 !important;
+}
+html.light .h-px.bg-white\/5 {
+    background-color: rgba(0, 0, 0, 0.08) !important;
+}
+html.light header .bg-\[\#1e1e1e\],
+html.light header .bg-\[\#151515\] {
+    background-color: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+}
+html.light header .text-white {
+    color: #111827 !important;
+}
+html.light header .text-gray-300 {
+    color: #374151 !important;
+}
+html.light .bg-emerald-500\/10 {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+}
+html.light .bg-rose-500\/10 {
+    background-color: rgba(244, 63, 94, 0.1) !important;
+}
+html.light footer {
+    background-color: #f9fafb !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+}
+html.light .fixed.bottom-0.left-0.right-0.max-h-\[85vh\] {
+    background-color: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+}
+html.light .fixed.bottom-0.left-0.right-0.max-h-\[85vh\] .text-white {
+    color: #111827 !important;
+}
+html.light .fixed.bottom-0.left-0.right-0.max-h-\[85vh\] .bg-white\/5 {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+}
+html.light .bg-\[\#121212\] {
+    background-color: #ffffff !important;
+}
+
+/* Responsive Flex Row Utility Fix for Desktop Layouts */
+@media (min-width: 768px) {
+    .md\:flex-row {
+        flex-direction: row !important;
+    }
+}
+
+
+
