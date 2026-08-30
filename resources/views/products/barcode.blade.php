@@ -179,11 +179,11 @@
                 <!-- Browser Print Window -->
                 <button 
                     type="button" 
-                    @click="printLabels()" 
+                    @click="executePrintNow()" 
                     class="px-5 py-2.5 rounded-xl bg-[#D41414] hover:bg-[#b01010] text-white text-xs font-black transition shadow-lg flex items-center gap-2"
                 >
                     <i class="fa-solid fa-print text-sm"></i>
-                    <span>🖨️ طباعة (نافذة المتصفح)</span>
+                    <span>🖨️ طباعة من المتصفح (اختيار الطابعة)</span>
                 </button>
             </div>
         </div>
@@ -1607,6 +1607,16 @@
                 },
 
                 executePrintNow() {
+                    // Auto queue custom item if name was entered
+                    if (this.totalLabelsCount() === 0 && this.customItem.name.trim()) {
+                        this.addCustomProductToQueue();
+                    }
+
+                    if (this.totalLabelsCount() === 0) {
+                        alert('يرجى كتابة اسم صنف أو اختيار منتج أولاً لإضافته لقائمة الطباعة.');
+                        return;
+                    }
+
                     this.renderAllBarcodes();
 
                     this.$nextTick(() => {
