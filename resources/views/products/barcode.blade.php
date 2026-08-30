@@ -1060,7 +1060,46 @@
 
                     this.directPrinting = true;
 
-                    // Try backend direct print first (works for local/network setups)
+                    // 1. Try Local Print Bridge on cashier machine (http://127.0.0.1:9191)
+                    try {
+                        const bridgeCheck = await fetch("http://127.0.0.1:9191/status", { method: 'GET', signal: AbortSignal.timeout(600) });
+                        if (bridgeCheck.ok) {
+                            const res = await fetch(data.directPrintUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': data.csrfToken,
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    items: this.itemsQueue,
+                                    config: this.config,
+                                    printer_name: this.selectedPrinter || ''
+                                })
+                            });
+                            const resData = await res.json();
+                            if (resData.tspl_data) {
+                                const bridgeRes = await fetch("http://127.0.0.1:9191/print-raw", {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ data: resData.tspl_data, printer: this.selectedPrinter || '' })
+                                });
+                                if (bridgeRes.ok) {
+                                    this.directPrinting = false;
+                                    this.printerStatus = {
+                                        tested: true,
+                                        success: true,
+                                        printer: 'Xprinter (Local Bridge)',
+                                        port: 'USB',
+                                        message: '✅ تمت الطباعة الفورية الصامتة بنجاح عبر الوسيط المحلي!'
+                                    };
+                                    return;
+                                }
+                            }
+                        }
+                    } catch(e) {}
+
+                    // 2. Try backend direct print (works for local development)
                     try {
                         const res = await fetch(data.directPrintUrl, {
                             method: 'POST',
@@ -1092,7 +1131,7 @@
                         console.warn('Backend direct print not accessible on cloud server, falling back to client printing...', e);
                     }
 
-                    // On live remote server (e.g. 2m.oxtech.uk):
+                    // 3. On live remote server (e.g. cloud/VPS):
                     // Automatically open the isolated browser print dialog directly connected to local Xprinter!
                     this.directPrinting = false;
                     this.printLabels();

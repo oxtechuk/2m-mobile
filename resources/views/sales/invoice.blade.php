@@ -425,54 +425,80 @@
             } catch (e) {
                 console.error("QR Code error:", e);
             }
-
-            // Ensure window.print() triggers exactly ONCE
-            if (!hasTriggeredPrint) {
-                hasTriggeredPrint = true;
-                // Auto trigger direct hardware print or print dialog
-                setTimeout(() => {
-                    // Let user use standard print or direct print
-                }, 350);
-            }
         }
 
-        function sendDirectPrint() {
+        async function sendDirectPrint() {
             const btn = document.getElementById('directPrintBtn');
             const originalHTML = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>جاري إرسال الفاتورة للطابعة...</span>';
             btn.style.opacity = '0.7';
             btn.disabled = true;
 
-            fetch("{{ route('sales.direct-print', $sale->id) }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    printer_name: 'Xprinter XP-370BM'
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
+            // 1. Try Local Print Bridge on cashier machine (http://127.0.0.1:9191/print)
+            try {
+                const bridgeCheck = await fetch("http://127.0.0.1:9191/status", { method: 'GET', signal: AbortSignal.timeout(600) });
+                if (bridgeCheck.ok) {
+                    // Fetch ESC data from server
+                    const res = await fetch("{{ route('sales.direct-print', $sale->id) }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ printer_name: 'Xprinter XP-370BM' })
+                    });
+                    const serverData = await res.json();
+                    if (serverData.esc_data) {
+                        const bridgeRes = await fetch("http://127.0.0.1:9191/print-raw", {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ data: serverData.esc_data, printer: 'Xprinter XP-370BM' })
+                        });
+                        if (bridgeRes.ok) {
+                            btn.innerHTML = '<i class="fa-solid fa-check"></i> <span>تمت الطباعة المباشرة عبر الوسيط المحلي!</span>';
+                            setTimeout(() => { btn.innerHTML = originalHTML; btn.style.opacity = '1'; btn.disabled = false; }, 2500);
+                            return;
+                        }
+                    }
+                }
+            } catch (e) {
+                // Local bridge not running, continue with standard pipeline
+            }
+
+            // 2. Try Backend direct print (Works on Localhost Windows)
+            try {
+                const res = await fetch("{{ route('sales.direct-print', $sale->id) }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        printer_name: 'Xprinter XP-370BM'
+                    })
+                });
+
+                const data = await res.json();
                 btn.innerHTML = originalHTML;
                 btn.style.opacity = '1';
                 btn.disabled = false;
+
                 if (data.success) {
                     btn.innerHTML = '<i class="fa-solid fa-check"></i> <span>تمت الطباعة الفورية بنجاح!</span>';
                     setTimeout(() => { btn.innerHTML = originalHTML; }, 2500);
-                } else {
-                    alert(data.message || 'حدث خطأ أثناء الطباعة المباشرة');
+                    return;
                 }
-            })
-            .catch(err => {
-                btn.innerHTML = originalHTML;
-                btn.style.opacity = '1';
-                btn.disabled = false;
-                console.error(err);
-                alert('تعذر الاتصال بخدمة الطباعة المباشرة.');
-            });
+            } catch (err) {
+                console.warn('Direct backend print inaccessible on server, using browser print...', err);
+            }
+
+            // 3. Cloud Server Fallback: Open optimized browser print window directly
+            btn.innerHTML = originalHTML;
+            btn.style.opacity = '1';
+            btn.disabled = false;
+            window.print();
         }
     </script>
 

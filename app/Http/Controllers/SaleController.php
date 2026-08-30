@@ -206,26 +206,33 @@ class SaleController extends Controller
         // 7. Full/Partial Cut
         $esc .= "\x1D\x56\x42\x00"; // GS V 66 0 (Cut immediately)
 
-        // Save raw file and print via PowerShell
-        $tempFile = storage_path('app/receipt_' . $sale->id . '_' . time() . '.prn');
-        file_put_contents($tempFile, $esc);
-
+        // Check if running on Windows OS with shell_exec enabled
+        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
         $psScript = storage_path('app/print_raw.ps1');
-        $command = 'powershell -NoProfile -ExecutionPolicy Bypass -File "' . $psScript . '" -PrinterName "' . $printerName . '" -RawFile "' . $tempFile . '"';
-        $output = @shell_exec($command);
-        @unlink($tempFile);
+        $canExec = function_exists('shell_exec') && !in_array('shell_exec', array_map('trim', explode(',', ini_get('disable_functions'))));
 
-        $res = json_decode($output, true);
-        if ($res && isset($res['success']) && $res['success']) {
-            return response()->json([
-                'success' => true,
-                'message' => 'تمت طباعة الفاتورة حرارياً بنجاح بدون أي هدر في الورق!'
-            ]);
+        if ($isWindows && $canExec && file_exists($psScript)) {
+            $tempFile = storage_path('app/receipt_' . $sale->id . '_' . time() . '.prn');
+            file_put_contents($tempFile, $esc);
+
+            $command = 'powershell -NoProfile -ExecutionPolicy Bypass -File "' . $psScript . '" -PrinterName "' . $printerName . '" -RawFile "' . $tempFile . '"';
+            $output = @shell_exec($command);
+            @unlink($tempFile);
+
+            $res = json_decode($output, true);
+            if ($res && isset($res['success']) && $res['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تمت طباعة الفاتورة حرارياً بنجاح بدون أي هدر في الورق!'
+                ]);
+            }
         }
 
         return response()->json([
             'success' => false,
-            'message' => 'تعذر إرسال أمر الطباعة المباشر للطابعة. يرجى التأكد من تشغيل الطابعة.'
-        ], 500);
+            'fallback_browser' => true,
+            'esc_data' => base64_encode($esc),
+            'message' => 'الخادم يعمل بنظام Cloud/Linux. سيتم استخدام نافذة الطباعة الحرارية من المتصفح.'
+        ], 200);
     }
 }

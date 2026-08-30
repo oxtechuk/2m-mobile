@@ -564,6 +564,18 @@ class ProductController extends Controller
         $testResult = -1;
         $errorMessage = null;
 
+        // Check if running on Windows OS with shell_exec enabled
+        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+        $canExec = function_exists('shell_exec') && !in_array('shell_exec', array_map('trim', explode(',', ini_get('disable_functions'))));
+
+        if (!$isWindows || !$canExec) {
+            return response()->json([
+                'success' => false,
+                'cloud_mode' => true,
+                'message' => 'الخادم يعمل على استضافة سحابية (Cloud/Linux Server). الطباعة تتم مباشرة من متصفح العميل أو عبر تطبيق الوسيط المحلي.'
+            ], 200);
+        }
+
         try {
             $psCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -Command "' .
                 '$printers = @(Get-WmiObject -Class Win32_Printer | Select-Object Name, PortName, WorkOffline, PrinterStatus, Default); ' .
@@ -607,9 +619,9 @@ class ProductController extends Controller
 
         return response()->json([
             'success' => false,
-            'message' => 'تعذر الاتصال بالطابعة. يرجى التأكد من تشغيل الطابعة وتوصيل كابل USB جيداً.',
+            'message' => 'تعذر الاتصال بالطابعة عبر السيرفر. سيتم الاعتماد على الطباعة المباشرة من المتصفح.',
             'error' => $errorMessage
-        ], 404);
+        ], 200);
     }
 
     /**
@@ -688,26 +700,34 @@ class ProductController extends Controller
             $tspl .= "PRINT 1,{$copies}\r\n";
         }
 
-        $tempFile = storage_path('app/temp_labels_' . time() . '.prn');
-        file_put_contents($tempFile, $tspl);
-
+        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
         $psScript = storage_path('app/print_raw.ps1');
-        $command = 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' . $psScript . '" -PrinterName "' . $printerName . '" -RawFile "' . $tempFile . '"';
-        $output = @shell_exec($command);
-        @unlink($tempFile);
+        $canExec = function_exists('shell_exec') && !in_array('shell_exec', array_map('trim', explode(',', ini_get('disable_functions'))));
 
-        $res = json_decode($output, true);
-        if ($res && isset($res['success']) && $res['success']) {
-            return response()->json([
-                'success' => true,
-                'message' => 'تمت الطباعة الفورية بنجاح على طابعة Xprinter دون أي هدر في الورق!'
-            ]);
+        if ($isWindows && $canExec && file_exists($psScript)) {
+            $tempFile = storage_path('app/temp_labels_' . time() . '.prn');
+            file_put_contents($tempFile, $tspl);
+
+            $command = 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' . $psScript . '" -PrinterName "' . $printerName . '" -RawFile "' . $tempFile . '"';
+            $output = @shell_exec($command);
+            @unlink($tempFile);
+
+            $res = json_decode($output, true);
+            if ($res && isset($res['success']) && $res['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تمت الطباعة الفورية بنجاح على طابعة Xprinter دون أي هدر في الورق!'
+                ]);
+            }
         }
 
+        // Return TSPL raw data for local print bridge fallback or client-side print
         return response()->json([
             'success' => false,
-            'message' => 'تعذر إرسال أمر الطباعة المباشر للطابعة. يرجى استخدام زر نافذة الطباعة.'
-        ], 500);
+            'fallback_browser' => true,
+            'tspl_data' => base64_encode($tspl),
+            'message' => 'الخادم يعمل بنظام Cloud/Linux. سيتم استخدام نافذة الطباعة المجهزة للملصقات الحرارية.'
+        ], 200);
     }
 }
 
