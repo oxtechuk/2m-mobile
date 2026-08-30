@@ -20,15 +20,6 @@ class POSController extends Controller
 {
     public function index()
     {
-        // Double check cash shift is open for cashier
-        if (Auth::user()->role === 'cashier') {
-            $shift = CashShift::where('user_id', Auth::id())->where('status', 'open')->first();
-            if (!$shift) {
-                flash('يرجى فتح وردية كاشير أولاً للتمكن من البيع.')->warning();
-                return redirect()->route('dashboard');
-            }
-        }
-
         return view('pos.index');
     }
 

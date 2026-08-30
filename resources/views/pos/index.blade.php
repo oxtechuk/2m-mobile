@@ -83,12 +83,10 @@
                         const data = await res.json();
                         this.shiftInfo = data;
                         if (!data.has_open_shift) {
-                            if (autoModalIfClosed) {
-                                this.shiftTab = 'open';
-                                this.shiftForm.opening_balance = 0;
-                                this.shiftForm.notes = '';
-                                this.showShiftModal = true;
-                            }
+                            this.shiftTab = 'open';
+                            this.shiftForm.opening_balance = 0;
+                            this.shiftForm.notes = '';
+                            this.showShiftModal = true;
                         } else {
                             this.shiftForm.actual_balance = data.shift.expected_cash;
                         }
@@ -104,6 +102,11 @@
                 },
 
                 async submitOpenShift() {
+                    const balance = parseFloat(this.shiftForm.opening_balance);
+                    if (isNaN(balance) || balance < 0) {
+                        alert('يرجى إدخال الرصيد الافتتاحي بشكل صحيح (0 أو أكثر).');
+                        return;
+                    }
                     this.isShiftLoading = true;
                     try {
                         const res = await fetch("{{ route('pos.shift.open') }}", {
@@ -829,18 +832,19 @@
     <!-- Shift Management Modal (فتح / ملخص / تسليم / قفل وردية) -->
     <div 
         x-show="showShiftModal" 
+        @keydown.escape.window="if(shiftInfo && shiftInfo.has_open_shift) showShiftModal = false; else showShiftModal = true;"
         x-transition:enter="transition ease-out duration-200"
         x-transition:enter-start="opacity-0 scale-95"
         x-transition:enter-end="opacity-100 scale-100"
         x-transition:leave="transition ease-in duration-150"
         x-transition:leave-start="opacity-100 scale-100"
         x-transition:leave-end="opacity-0 scale-95"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-lg"
         style="display: none;"
     >
         <div 
-            @click.away="if(shiftInfo && shiftInfo.has_open_shift) showShiftModal = false" 
-            class="bg-[#121212] border border-white/15 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-5 text-right relative overflow-hidden"
+            @click.outside="if(shiftInfo && shiftInfo.has_open_shift) showShiftModal = false; else showShiftModal = true;" 
+            class="bg-[#121212] border border-rose-500/30 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-5 text-right relative overflow-hidden"
         >
             <!-- Background Accent Glow -->
             <div class="absolute -top-24 -right-24 w-48 h-48 bg-[#D41414]/20 rounded-full blur-3xl pointer-events-none"></div>
@@ -852,7 +856,12 @@
                         <i class="fa-solid fa-clock-rotate-left"></i>
                     </div>
                     <div>
-                        <h3 class="text-sm font-bold text-white">إدارة ورديات الخزينة (Cash Shift)</h3>
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <span>إدارة ورديات الخزينة (Cash Shift)</span>
+                            <template x-if="!shiftInfo || !shiftInfo.has_open_shift">
+                                <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 text-[10px] font-black border border-rose-500/30 animate-pulse">إجباري</span>
+                            </template>
+                        </h3>
                         <p class="text-[11px] text-gray-400">فتح، تسليم، وقفل الوردية لكل كاشير ومستخدم</p>
                     </div>
                 </div>

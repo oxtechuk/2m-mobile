@@ -11,6 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::disableForeignKeyConstraints();
+
         // 1. Add HR and payroll fields to users table if not already present
         Schema::table('users', function (Blueprint $table) {
             if (!Schema::hasColumn('users', 'hire_date')) {
@@ -34,8 +36,8 @@ return new class extends Migration
         if (!Schema::hasTable('payrolls')) {
             Schema::create('payrolls', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-                $table->foreignId('branch_id')->nullable()->constrained('branches')->onDelete('set null');
+                $table->foreignId('user_id')->nullable();
+                $table->foreignId('branch_id')->nullable();
                 $table->unsignedSmallInteger('year');
                 $table->unsignedTinyInteger('month'); // 1 to 12
                 $table->decimal('basic_salary', 12, 2)->default(0);
@@ -46,12 +48,12 @@ return new class extends Migration
                 $table->decimal('total_advances', 12, 2)->default(0);
                 $table->decimal('net_salary', 12, 2)->default(0);
                 $table->enum('status', ['draft', 'approved', 'paid'])->default('draft');
-                $table->foreignId('wallet_id')->nullable()->constrained('wallets')->onDelete('set null');
-                $table->foreignId('expense_id')->nullable()->constrained('expenses')->onDelete('set null');
+                $table->foreignId('wallet_id')->nullable();
+                $table->foreignId('expense_id')->nullable();
                 $table->timestamp('approved_at')->nullable();
-                $table->foreignId('approved_by')->nullable()->constrained('users')->onDelete('set null');
+                $table->foreignId('approved_by')->nullable();
                 $table->timestamp('paid_at')->nullable();
-                $table->foreignId('paid_by')->nullable()->constrained('users')->onDelete('set null');
+                $table->foreignId('paid_by')->nullable();
                 $table->text('notes')->nullable();
                 $table->timestamps();
 
@@ -63,19 +65,21 @@ return new class extends Migration
         if (!Schema::hasTable('employee_adjustments')) {
             Schema::create('employee_adjustments', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-                $table->foreignId('branch_id')->nullable()->constrained('branches')->onDelete('set null');
+                $table->foreignId('user_id')->nullable();
+                $table->foreignId('branch_id')->nullable();
                 $table->enum('type', ['advance', 'deduction', 'bonus', 'allowance', 'commission']);
                 $table->decimal('amount', 12, 2);
                 $table->date('date');
                 $table->text('reason')->nullable();
                 $table->enum('status', ['pending', 'settled', 'cancelled'])->default('pending');
-                $table->foreignId('payroll_id')->nullable()->constrained('payrolls')->onDelete('set null');
-                $table->foreignId('wallet_id')->nullable()->constrained('wallets')->onDelete('set null'); // if advance was paid from cash wallet
-                $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
+                $table->foreignId('payroll_id')->nullable();
+                $table->foreignId('wallet_id')->nullable();
+                $table->foreignId('created_by')->nullable();
                 $table->timestamps();
             });
         }
+
+        Schema::enableForeignKeyConstraints();
     }
 
     /**
