@@ -1026,12 +1026,6 @@
                     this.filteredProductsList = this.allProducts.slice(0, 10);
                     this.$nextTick(() => this.renderAllBarcodes());
                 },
-                        this.addProductToQueue(data.initialProduct, (data.initialProduct.stock_quantity > 0 ? data.initialProduct.stock_quantity : 1));
-                        this.activeTab = 'system';
-                    }
-                    this.filteredProductsList = this.allProducts.slice(0, 10);
-                    this.$nextTick(() => this.renderAllBarcodes());
-                },
 
                 selectedPrinter: '',
                 checkPrinterConnection() {
