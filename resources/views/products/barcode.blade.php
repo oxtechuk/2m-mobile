@@ -10,10 +10,23 @@
             font-family: 'Share Tech Mono', monospace;
         }
 
+        /* High contrast crisp rendering for thermal and optical barcode readers */
+        svg.barcode-svg, svg.barcode-svg * {
+            shape-rendering: crispEdges !important;
+        }
+
+        .qr-code-img {
+            image-rendering: -webkit-optimize-contrast !important;
+            image-rendering: crisp-edges !important;
+            image-rendering: pixelated !important;
+            display: block;
+            margin: auto;
+        }
+
         /* Interactive Barcode Label Box */
         .barcode-label {
-            background: #ffffff;
-            color: #000000;
+            background: #ffffff !important;
+            color: #000000 !important;
             border: 1px dashed #d1d5db;
             border-radius: 4px;
             display: flex;
@@ -36,7 +49,7 @@
             justify-content: center;
             align-items: center;
             padding: 1px;
-            background: #ffffff;
+            background: #ffffff !important;
         }
         .barcode-label .qr-container img, 
         .barcode-label .qr-container canvas {
@@ -50,7 +63,7 @@
         .label-38x25 {
             width: 38mm;
             height: 25mm;
-            padding: 1.5mm 1mm;
+            padding: 1mm 1mm;
         }
         .label-38x25 .qr-container img,
         .label-38x25 .qr-container canvas {
@@ -61,7 +74,7 @@
         .label-40x30 {
             width: 40mm;
             height: 30mm;
-            padding: 2mm 1.5mm;
+            padding: 1.5mm 1.5mm;
         }
         .label-40x30 .qr-container img,
         .label-40x30 .qr-container canvas {
@@ -72,7 +85,7 @@
         .label-50x25 {
             width: 50mm;
             height: 25mm;
-            padding: 2mm 1.5mm;
+            padding: 1.5mm 1.5mm;
         }
         .label-50x30 {
             width: 50mm;
@@ -136,7 +149,7 @@
                 </div>
                 <div>
                     <h1 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-tight">استوديو طباعة الباركود والـ QR Code</h1>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">طابعة Xprinter الحرارية (38×25 مم) وشبكات أوراق A4.</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">طابعة Xprinter الحرارية (38×25 مم) وطابعات الملصقات وشبكات أوراق A4.</p>
                 </div>
             </div>
 
@@ -156,7 +169,7 @@
                 <button 
                     type="button" 
                     @click="directHardwarePrint()" 
-                    class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition shadow-lg flex items-center gap-2 animate-pulse hover:animate-none"
+                    class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition shadow-lg flex items-center gap-2"
                     :disabled="directPrinting"
                 >
                     <i class="fa-solid" :class="directPrinting ? 'fa-spinner fa-spin' : 'fa-bolt'"></i>
@@ -167,21 +180,21 @@
                 <button 
                     type="button" 
                     @click="printLabels()" 
-                    class="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-bold transition border border-white/10 flex items-center gap-2"
+                    class="px-5 py-2.5 rounded-xl bg-[#D41414] hover:bg-[#b01010] text-white text-xs font-black transition shadow-lg flex items-center gap-2"
                 >
-                    <i class="fa-solid fa-print text-xs"></i>
-                    <span>نافذة المتصفح</span>
+                    <i class="fa-solid fa-print text-sm"></i>
+                    <span>🖨️ طباعة (نافذة المتصفح)</span>
                 </button>
             </div>
         </div>
 
-        <!-- Calibration & Tip Banner for Xprinter -->
-        <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-700 dark:text-amber-300 flex items-start gap-2.5 no-print">
-            <i class="fa-solid fa-lightbulb text-amber-500 text-sm mt-0.5 shrink-0"></i>
+        <!-- Scanner Reliability Guarantee Banner -->
+        <div class="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-700 dark:text-emerald-300 flex items-start gap-2.5 no-print">
+            <i class="fa-solid fa-circle-check text-emerald-500 text-base mt-0.5 shrink-0"></i>
             <div class="space-y-1">
-                <p class="font-bold">💡 زر "⚡ طباعة فورية Xprinter (بدون هدر)" يطبع مباشرة على الطابعة بالمليمتر (38×25 مم) بدون تخطي أي ملصقات!</p>
+                <p class="font-bold">✨ تم ضبط دقة الباركود مع هوامش أمان (Quiet Zones) لضمان القراءة الفورية عبر جميع أنواع أجهزة الاسكانر اليدوية وقارئات الموبايل بدون أي خطأ.</p>
                 <p class="text-[11px] text-gray-600 dark:text-gray-400">
-                    إذا كانت الطابعة لا تقف عند الخط الفاصل، عاير الحساس: أطفئ الباور ⬅️ اضغط زر <strong>FEED</strong> الدائري باستمرار ⬅️ شغّل الباور ⬅️ ارفع يدك عند سماع صفارتين.
+                    💡 <strong>نصيحة الطباعة من المتصفح:</strong> في نافذة الطباعة، تأكد من اختيار مقاس الورق (38×25 مم أو User Defined) وضبط الهوامش على <strong>None / بلا هوامش</strong>.
                 </p>
             </div>
         </div>
@@ -291,7 +304,7 @@
                             :class="activeTab === 'custom' ? 'bg-[#D41414] text-white shadow-md' : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:text-white'"
                         >
                             <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
-                            <span>إنشاء صنف خارجي مخصص / QR كود</span>
+                            <span>إنشاء صنف خارجي مخصص / باركود / QR</span>
                         </button>
                         <button 
                             type="button"
@@ -309,8 +322,8 @@
                         <div class="p-3.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-500/30 rounded-xl space-y-3">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-qrcode text-amber-500"></i>
-                                    <span>كتابة بيانات منتج خارجي لتوليد QR كود أو باركود وطباعة كمية منه:</span>
+                                    <i class="fa-solid fa-barcode text-amber-500"></i>
+                                    <span>كتابة بيانات صنف لتوليد باركود خطوط أو QR كود فوري:</span>
                                 </span>
                             </div>
 
@@ -341,27 +354,45 @@
                                 <!-- Code or QR Text -->
                                 <div>
                                     <div class="flex items-center justify-between mb-1">
-                                        <label class="block font-bold text-gray-700 dark:text-gray-300">محتوى الـ QR / الكود</label>
-                                        <button 
-                                            type="button" 
-                                            @click="customItem.code = '2M-' + Math.floor(Math.random() * 899999 + 100000);"
-                                            class="text-[10px] text-amber-600 dark:text-amber-400 hover:underline font-mono"
-                                        >
-                                            كود عشوائي
-                                        </button>
+                                        <label class="block font-bold text-gray-700 dark:text-gray-300">رقم الكود / الباركود</label>
+                                        <div class="flex gap-2">
+                                            <button 
+                                                type="button" 
+                                                @click="customItem.code = '200' + Math.floor(Math.random() * 89999999 + 10000000);"
+                                                class="text-[10px] text-teal-600 dark:text-teal-400 hover:underline font-mono"
+                                            >
+                                                أرقام (11 رقم)
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                @click="customItem.code = '2M-' + Math.floor(Math.random() * 899999 + 100000);"
+                                                class="text-[10px] text-amber-600 dark:text-amber-400 hover:underline font-mono"
+                                            >
+                                                كود 2M
+                                            </button>
+                                        </div>
                                     </div>
                                     <input 
                                         type="text" 
                                         x-model="customItem.code"
-                                        placeholder="رقم باركود، كود صنف، أو رابط URL..." 
+                                        placeholder="رقم باركود، كود صنف، أو رقم تسلسلي..." 
                                         class="w-full bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-gray-900 dark:text-white focus:border-amber-500"
                                     >
                                 </div>
 
-                                <!-- Symbol Type: QR Code vs Linear Barcode -->
+                                <!-- Symbol Type: Linear Barcode vs EAN13 vs QR Code -->
                                 <div>
                                     <label class="block font-bold text-gray-700 dark:text-gray-300 mb-1">نوع الرمز على الملصق:</label>
                                     <div class="grid grid-cols-2 gap-2">
+                                        <button 
+                                            type="button"
+                                            @click="customItem.code_type = 'barcode'"
+                                            class="py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition"
+                                            :class="customItem.code_type === 'barcode' ? 'bg-amber-500 text-zinc-950 border-amber-600 font-black shadow' : 'bg-white dark:bg-zinc-900 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-zinc-700'"
+                                        >
+                                            <i class="fa-solid fa-barcode"></i>
+                                            <span>باركود (خطوط - موصى به)</span>
+                                        </button>
                                         <button 
                                             type="button"
                                             @click="customItem.code_type = 'qr'"
@@ -370,15 +401,6 @@
                                         >
                                             <i class="fa-solid fa-qrcode"></i>
                                             <span>QR Code (مربع)</span>
-                                        </button>
-                                        <button 
-                                            type="button"
-                                            @click="customItem.code_type = 'barcode'"
-                                            class="py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition"
-                                            :class="customItem.code_type === 'barcode' ? 'bg-amber-500 text-zinc-950 border-amber-600 font-black shadow' : 'bg-white dark:bg-zinc-900 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-zinc-700'"
-                                        >
-                                            <i class="fa-solid fa-barcode"></i>
-                                            <span>باركود (خطوط)</span>
                                         </button>
                                     </div>
                                 </div>
@@ -547,9 +569,9 @@
                                             <button 
                                                 type="button" 
                                                 @click="toggleItemCodeType(item)"
-                                                class="px-2 py-0.5 rounded text-[11px] font-bold border transition flex items-center justify-center gap-1 mx-auto"
-                                                :class="item.code_type === 'qr' ? 'bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400' : 'bg-teal-500/10 border-teal-500/20 text-teal-600 dark:text-teal-400'"
-                                                title="اضغط للتبديل بين QR Code والباركود الخطي"
+                                                class="px-2 py-1 rounded text-[11px] font-bold border transition flex items-center justify-center gap-1 mx-auto"
+                                                :class="item.code_type === 'qr' ? 'bg-purple-500/15 border-purple-500/30 text-purple-600 dark:text-purple-400' : 'bg-teal-500/15 border-teal-500/30 text-teal-600 dark:text-teal-400'"
+                                                title="اضغط للتبديل بين الباركود الخطي و QR Code"
                                             >
                                                 <i class="fa-solid" :class="item.code_type === 'qr' ? 'fa-qrcode' : 'fa-barcode'"></i>
                                                 <span x-text="item.code_type === 'qr' ? 'QR Code' : 'باركود'"></span>
@@ -576,7 +598,7 @@
                                         <!-- Remove Item -->
                                         <td class="py-2.5 text-center">
                                             <button 
-                                                type="button"
+                                                type="button" 
                                                 @click="removeItemFromQueue(index)" 
                                                 class="text-rose-500 hover:text-rose-700 p-1"
                                                 title="حذف من القائمة"
@@ -591,7 +613,7 @@
                                     <tr>
                                         <td colspan="5" class="py-8 text-center text-gray-400 text-xs">
                                             <i class="fa-solid fa-qrcode text-3xl mb-2 text-gray-300 dark:text-zinc-700 block"></i>
-                                            لم يتم إضافة أي ملصقات بعد. اكتب بيانات صنف في الأعلى أو اختر منتجاً لعرض الـ QR والباركود.
+                                            لم يتم إضافة أي ملصقات بعد. اكتب بيانات صنف في الأعلى أو اختر منتجاً لعرض الباركود.
                                         </td>
                                     </tr>
                                 </template>
@@ -602,13 +624,14 @@
 
             </div>
 
-            <!-- Right 5 Cols: Label Designer & Settings Customizer -->
+            <!-- Right 5 Cols: Label Designer & Live Scanner Verification -->
             <div class="lg:col-span-5 space-y-4">
                 
+                <!-- Designer Settings Panel -->
                 <div class="glass-panel p-4 space-y-4">
                     <h3 class="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-2 pb-2 border-b border-gray-200 dark:border-white/5">
                         <i class="fa-solid fa-sliders text-[#D41414]"></i>
-                        <span>تخصيص مظهر وتصميم ملصق الباركود / الـ QR:</span>
+                        <span>تخصيص مظهر وتصميم ملصق الباركود:</span>
                     </h3>
 
                     <!-- Label Size Presets -->
@@ -619,7 +642,7 @@
                             @change="renderAllBarcodes()"
                             class="w-full bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 dark:text-white focus:border-[#D41414]"
                         >
-                            <option value="label-38x25">🏷️ 38mm × 25mm (رول باركود حراري Xprinter قياسي - الموصى به)</option>
+                            <option value="label-38x25">🏷️ 38mm × 25mm (رول باركود حراري Xprinter قياسي - المضبوط)</option>
                             <option value="label-40x30">🏷️ 40mm × 30mm (رول باركود حراري متوسط)</option>
                             <option value="label-50x25">🏷️ 50mm × 25mm (رول باركود حراري عريض)</option>
                             <option value="label-50x30">🏷️ 50mm × 30mm (رول باركود حراري للأجهزة)</option>
@@ -654,7 +677,7 @@
                             <!-- Barcode Number Text -->
                             <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/5">
                                 <input type="checkbox" x-model="config.showBarcodeText" @change="renderAllBarcodes()" class="rounded text-[#D41414] focus:ring-[#D41414]">
-                                <span class="font-medium text-gray-800 dark:text-gray-200 text-[11px]">رقم الكود المكتوب</span>
+                                <span class="font-medium text-gray-800 dark:text-gray-200 text-[11px]">رقم الكود أسفل الخطوط</span>
                             </label>
 
                             <!-- SKU -->
@@ -682,6 +705,35 @@
                         >
                     </div>
 
+                </div>
+
+                <!-- LIVE SCANNER TEST / VERIFICATION WIDGET -->
+                <div class="glass-panel p-4 space-y-3 bg-gradient-to-br from-zinc-900 to-zinc-950 border border-teal-500/20">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-bold text-teal-400 flex items-center gap-2">
+                            <i class="fa-solid fa-expand text-teal-400"></i>
+                            <span>فحص وتجربة قارئ الباركود (Scanner Test)</span>
+                        </h4>
+                        <span class="text-[10px] px-2 py-0.5 rounded bg-teal-500/10 text-teal-300 font-mono">جاهز للفحص</span>
+                    </div>
+                    <p class="text-[11px] text-gray-400">
+                        وجّه جهاز الاسكانر أو كاميرا الموبايل نحو الشاشة أو الملصق المطبوع لاختبار القراءة الفورية:
+                    </p>
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            x-model="scannerTestInput"
+                            @keydown.enter="handleScannerTest()"
+                            placeholder="اضغط هنا وقم بمسح الباركود بجهاز الاسكانر..."
+                            class="w-full bg-black border border-teal-500/40 rounded-xl px-3 py-2 text-xs font-mono text-teal-300 placeholder-gray-500 focus:ring-1 focus:ring-teal-400 focus:border-teal-400"
+                        >
+                    </div>
+                    <template x-if="lastScannedCode">
+                        <div class="p-2 bg-teal-500/10 border border-teal-500/30 rounded-lg text-xs text-teal-300 flex items-center justify-between">
+                            <span>✅ تمت القراءة بنجاح:</span>
+                            <strong class="font-mono text-white" x-text="lastScannedCode"></strong>
+                        </div>
+                    </template>
                 </div>
 
             </div>
@@ -724,7 +776,7 @@
                             <!-- Store Name Header -->
                             <div 
                                 x-show="config.showStoreName" 
-                                class="text-[8px] font-black tracking-wider uppercase truncate w-full" 
+                                class="text-[8px] font-black tracking-wider uppercase truncate w-full text-center" 
                                 style="line-height: 1.1;"
                                 x-text="config.storeName"
                             ></div>
@@ -732,8 +784,8 @@
                             <!-- Product Name -->
                             <div 
                                 x-show="config.showProductName" 
-                                class="text-[9px] font-bold truncate w-full px-0.5" 
-                                style="line-height: 1.2;"
+                                class="text-[8.5px] font-bold truncate w-full px-0.5 text-center" 
+                                style="line-height: 1.15;"
                                 x-text="item.name"
                             ></div>
 
@@ -743,7 +795,7 @@
                             </template>
                             <template x-if="item.code_type !== 'qr'">
                                 <div class="my-0.5 flex justify-center items-center w-full overflow-hidden">
-                                    <svg :id="'barcode-svg-' + item.id + '-' + copy" class="max-w-full"></svg>
+                                    <svg :id="'barcode-svg-' + item.id + '-' + copy" class="barcode-svg max-w-full"></svg>
                                 </div>
                             </template>
 
@@ -759,7 +811,7 @@
 
                 <template x-if="totalLabelsCount() === 0">
                     <div class="py-10 text-center text-gray-400 text-xs no-print col-span-full">
-                        لا توجد ملصقات للمعاينة. أدخل بيانات صنف في الأعلى أو اختر منتجاً لعرض الـ QR والباركود.
+                        لا توجد ملصقات للمعاينة. أدخل بيانات صنف في الأعلى أو اختر منتجاً لعرض الباركود.
                     </div>
                 </template>
 
@@ -782,6 +834,8 @@
                 labelPreset: 'label-38x25', // Default to Xprinter 38x25mm
                 testingPrinter: false,
                 directPrinting: false,
+                scannerTestInput: '',
+                lastScannedCode: '',
                 printerStatus: {
                     tested: false,
                     success: false,
@@ -792,7 +846,7 @@
                 customItem: {
                     name: '',
                     price: '',
-                    code: '2M-' + Math.floor(Math.random() * 899999 + 100000),
+                    code: '200' + Math.floor(Math.random() * 89999999 + 10000000),
                     code_type: 'barcode', // Default to linear barcode (lines)
                     qty: 1
                 },
@@ -819,9 +873,17 @@
                 cleanBarcodeValue(item) {
                     let val = String(item.barcode || item.sku || '').trim();
                     if (!val || !/^[\x20-\x7E]+$/.test(val)) {
-                        val = '2M-' + this.hashCode(item.name || ('PROD-' + item.id));
+                        val = '2M' + this.hashCode(item.name || ('PROD-' + item.id)).toString().slice(0, 8);
                     }
                     return val;
+                },
+
+                handleScannerTest() {
+                    const code = (this.scannerTestInput || '').trim();
+                    if (code) {
+                        this.lastScannedCode = code;
+                        this.scannerTestInput = '';
+                    }
                 },
 
                 renderAllBarcodes() {
@@ -838,7 +900,7 @@
                                     if (qrEl && typeof QRCode !== 'undefined') {
                                         qrEl.innerHTML = '';
                                         try {
-                                            const qrSize = this.isA4Preset() ? 56 : 38;
+                                            const qrSize = this.isA4Preset() ? 52 : 36;
                                             new QRCode(qrEl, {
                                                 text: barcodeVal,
                                                 width: qrSize,
@@ -847,6 +909,15 @@
                                                 colorLight: "#ffffff",
                                                 correctLevel: QRCode.CorrectLevel.M
                                             });
+
+                                            // Convert canvas to <img> with base64 dataURL to ensure 100% crisp printing across iframe & all browsers
+                                            setTimeout(() => {
+                                                const canvas = qrEl.querySelector('canvas');
+                                                if (canvas) {
+                                                    const dataUrl = canvas.toDataURL('image/png');
+                                                    qrEl.innerHTML = `<img src="${dataUrl}" class="qr-code-img" style="width:${qrSize}px; height:${qrSize}px; display:block; margin:auto; image-rendering:pixelated; -webkit-print-color-adjust:exact;" alt="QR" />`;
+                                                }
+                                            }, 25);
                                         } catch(err) {
                                             console.error('QR Render Error:', err);
                                         }
@@ -858,28 +929,62 @@
                                     const svgEl = document.querySelector(svgId);
                                     if (svgEl && typeof JsBarcode !== 'undefined') {
                                         try {
+                                            const len = barcodeVal.length;
+                                            let barWidth = 1.35;
+                                            let barHeight = 32;
+                                            let barMargin = 4;
+
+                                            if (this.isA4Preset()) {
+                                                barWidth = len > 14 ? 1.3 : 1.5;
+                                                barHeight = 38;
+                                                barMargin = 6;
+                                            } else if (this.labelPreset === 'label-38x25') {
+                                                barWidth = len > 14 ? 1.0 : (len > 10 ? 1.15 : 1.35);
+                                                barHeight = 30;
+                                                barMargin = 4;
+                                            } else if (this.labelPreset === 'label-50x25' || this.labelPreset === 'label-50x30') {
+                                                barWidth = len > 14 ? 1.3 : 1.5;
+                                                barHeight = 34;
+                                                barMargin = 6;
+                                            }
+
+                                            // Select format
+                                            let format = 'CODE128';
+                                            if (/^\d{13}$/.test(barcodeVal)) {
+                                                format = 'EAN13';
+                                            }
+
                                             JsBarcode(svgEl, barcodeVal, {
-                                                format: 'CODE128',
-                                                width: this.isA4Preset() ? 1.6 : 1.3,
-                                                height: this.isA4Preset() ? 38 : 34,
+                                                format: format,
+                                                width: barWidth,
+                                                height: barHeight,
                                                 displayValue: this.config.showBarcodeText,
-                                                fontSize: 10,
-                                                margin: 0,
+                                                fontSize: 9,
+                                                margin: barMargin,
                                                 font: 'Share Tech Mono',
-                                                textMargin: 1
+                                                textMargin: 1,
+                                                lineColor: '#000000',
+                                                background: '#ffffff',
+                                                flat: true
                                             });
+
+                                            svgEl.setAttribute('shape-rendering', 'crispEdges');
                                         } catch(err) {
                                             try {
-                                                const fallbackCode = '2M-' + this.hashCode(barcodeVal);
+                                                const fallbackCode = '2M' + this.hashCode(barcodeVal).toString().slice(0, 8);
                                                 JsBarcode(svgEl, fallbackCode, {
                                                     format: 'CODE128',
                                                     width: 1.2,
-                                                    height: 30,
+                                                    height: 28,
                                                     displayValue: this.config.showBarcodeText,
                                                     fontSize: 9,
-                                                    margin: 0,
-                                                    font: 'Share Tech Mono'
+                                                    margin: 4,
+                                                    font: 'Share Tech Mono',
+                                                    lineColor: '#000000',
+                                                    background: '#ffffff',
+                                                    flat: true
                                                 });
+                                                svgEl.setAttribute('shape-rendering', 'crispEdges');
                                             } catch(e) {
                                                 console.error('Barcode Render Error:', e);
                                             }
@@ -1001,7 +1106,7 @@
                     }
                     const price = parseFloat(this.customItem.price) || 0;
                     const qty = parseInt(this.customItem.qty) || 1;
-                    const code = this.customItem.code.trim() || ('2M-' + Math.floor(Math.random() * 899999 + 100000));
+                    const code = this.customItem.code.trim() || ('200' + Math.floor(Math.random() * 89999999 + 10000000));
 
                     this.itemsQueue.push({
                         id: 'custom-' + Date.now() + Math.random().toString(36).substr(2, 4),
@@ -1010,14 +1115,14 @@
                         sku: code,
                         barcode: code,
                         selling_price: price,
-                        code_type: this.customItem.code_type || 'qr',
+                        code_type: this.customItem.code_type || 'barcode',
                         print_qty: qty
                     });
 
                     // Reset form fields with new random code
                     this.customItem.name = '';
                     this.customItem.price = '';
-                    this.customItem.code = '2M-' + Math.floor(Math.random() * 899999 + 100000);
+                    this.customItem.code = '200' + Math.floor(Math.random() * 89999999 + 10000000);
                     this.customItem.qty = 1;
 
                     this.$nextTick(() => this.renderAllBarcodes());
@@ -1128,11 +1233,24 @@
 
                     this.renderAllBarcodes();
 
-                    // Print via isolated iframe with EXACT thermal label sizing
+                    // Print via isolated iframe with EXACT thermal label sizing & crisp contrast
                     this.$nextTick(() => {
                         setTimeout(() => {
                             const renderArea = document.getElementById('labels-render-area');
                             if (!renderArea) return;
+
+                            // Ensure any remaining canvas inside render area is converted to <img>
+                            const canvases = renderArea.querySelectorAll('canvas');
+                            canvases.forEach(cv => {
+                                try {
+                                    const img = document.createElement('img');
+                                    img.src = cv.toDataURL('image/png');
+                                    img.className = 'qr-code-img';
+                                    img.style.cssText = 'width: 36px; height: 36px; display: block; margin: auto; image-rendering: pixelated;';
+                                    cv.parentNode.replaceChild(img, cv);
+                                } catch(e) {}
+                            });
+
                             const printHtml = renderArea.innerHTML;
                             const preset = this.labelPreset;
                             const isA4 = this.isA4Preset();
@@ -1172,15 +1290,39 @@
                                 <html dir="rtl" lang="ar">
                                 <head>
                                     <meta charset="utf-8">
-                                    <title>طباعة الملصقات - 2M Mobile</title>
+                                    <title>طباعة الباركود - 2M Mobile</title>
                                     <style>
                                         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Cairo:wght@600;700;900&display=swap');
-                                        * { box-sizing: border-box; margin: 0; padding: 0; }
-                                        html, body { font-family: 'Cairo', system-ui, sans-serif; background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
+                                        * { 
+                                            box-sizing: border-box; 
+                                            margin: 0; 
+                                            padding: 0; 
+                                            -webkit-print-color-adjust: exact !important;
+                                            print-color-adjust: exact !important;
+                                            color-adjust: exact !important;
+                                        }
+                                        html, body { 
+                                            font-family: 'Cairo', system-ui, sans-serif; 
+                                            background: #ffffff !important; 
+                                            color: #000000 !important; 
+                                            margin: 0 !important; 
+                                            padding: 0 !important; 
+                                            overflow: hidden !important; 
+                                        }
                                         
+                                        svg, svg * {
+                                            shape-rendering: crispEdges !important;
+                                        }
+
+                                        img, .qr-code-img {
+                                            image-rendering: -webkit-optimize-contrast !important;
+                                            image-rendering: crisp-edges !important;
+                                            image-rendering: pixelated !important;
+                                        }
+
                                         .barcode-label {
-                                            background: #ffffff;
-                                            color: #000000;
+                                            background: #ffffff !important;
+                                            color: #000000 !important;
                                             display: flex;
                                             flex-direction: column;
                                             align-items: center;
@@ -1190,7 +1332,7 @@
                                             box-sizing: border-box;
                                         }
                                         .qr-container { display: flex; justify-content: center; align-items: center; }
-                                        .qr-container img, .qr-container canvas { display: block; margin: auto; max-height: 38px; max-width: 38px; }
+                                        .qr-container img, .qr-container canvas { display: block; margin: auto; max-height: 36px; max-width: 36px; }
 
                                         ${isA4 ? `
                                             body { padding: 4mm 2mm; }

@@ -642,16 +642,18 @@ class ProductController extends Controller
             $tspl .= "SIZE 38 mm, 25 mm\r\n";
             $tspl .= "GAP 2 mm, 0 mm\r\n";
             $tspl .= "DIRECTION 1\r\n";
+            $tspl .= "DENSITY 12\r\n";
+            $tspl .= "SPEED 4\r\n";
             $tspl .= "CLS\r\n";
 
             // Store Name
             if ($showStoreName && !empty($storeName)) {
-                $tspl .= "TEXT 152,10,\"2\",0,1,1,\"" . addslashes(substr($storeName, 0, 20)) . "\"\r\n";
+                $tspl .= "TEXT 152,8,\"2\",0,1,1,\"" . addslashes(substr($storeName, 0, 20)) . "\"\r\n";
             }
 
             // Product Name
             if ($showProductName) {
-                $tspl .= "TEXT 152,35,\"1\",0,1,1,\"" . addslashes(substr($name, 0, 25)) . "\"\r\n";
+                $tspl .= "TEXT 152,30,\"1\",0,1,1,\"" . addslashes(substr($name, 0, 25)) . "\"\r\n";
             }
 
             // Clean code for Barcode / QR (remove any non-ASCII characters that can crash Code128)
@@ -664,22 +666,22 @@ class ProductController extends Controller
             // Dynamic calculation for barcode width
             $len = strlen($cleanBarcode);
             $narrow = ($len <= 9) ? 2 : 1;
-            $wide = 2;
+            $wide = $narrow;
             // Center barcode horizontally (approx based on width)
             $estimatedWidth = ($len * 11 + 35) * $narrow;
-            $startX = max(10, (int)((304 - $estimatedWidth) / 2));
+            $startX = max(12, (int)((304 - $estimatedWidth) / 2));
 
             // QR Code or Linear Barcode (Lines)
             if ($type === 'qr') {
-                $tspl .= "QRCODE 105,42,L,5,A,0,\"" . addslashes($code) . "\"\r\n";
+                $tspl .= "QRCODE 105,38,M,4,A,0,\"" . addslashes($code) . "\"\r\n";
             } else {
-                // Large, Bold Linear Barcode (Height = 68 dots, clearly visible and easy to scan)
-                $tspl .= "BARCODE {$startX},45,\"128\",68,1,0,{$narrow},{$wide},\"" . addslashes($cleanBarcode) . "\"\r\n";
+                // High contrast Code 128 Barcode with proper quiet zone
+                $tspl .= "BARCODE {$startX},42,\"128\",64,1,0,{$narrow},{$wide},\"" . addslashes($cleanBarcode) . "\"\r\n";
             }
 
             // Price (Bold, Centered)
             if ($showPrice) {
-                $tspl .= "TEXT 152,152,\"2\",0,1,1,\"" . addslashes($price) . "\"\r\n";
+                $tspl .= "TEXT 152,156,\"2\",0,1,1,\"" . addslashes($price) . "\"\r\n";
             }
 
             $tspl .= "PRINT 1,{$copies}\r\n";
