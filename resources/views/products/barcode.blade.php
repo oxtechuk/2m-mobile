@@ -1005,6 +1005,7 @@
                     this.$nextTick(() => this.renderAllBarcodes());
                 },
 
+                selectedPrinter: '',
                 checkPrinterConnection() {
                     this.testingPrinter = true;
                     this.printerStatus.tested = false;
@@ -1017,17 +1018,20 @@
                             'Accept': 'application/json'
                         },
                         body: JSON.stringify({
-                            printer_name: 'Xprinter'
+                            printer_name: this.selectedPrinter || ''
                         })
                     })
                     .then(res => res.json())
                     .then(resData => {
                         this.testingPrinter = false;
+                        if (resData.printer) {
+                            this.selectedPrinter = resData.printer;
+                        }
                         this.printerStatus = {
                             tested: true,
                             success: resData.success,
-                            printer: resData.printer || 'Xprinter XP-233B',
-                            port: resData.port || 'USB001',
+                            printer: resData.printer || 'Xprinter XP-233B #2',
+                            port: resData.port || 'USB003',
                             message: resData.message || (resData.success ? 'تم الاتصال بالطابعة وإرسال صفحة اختبار بنجاح' : 'تعذر الاتصال بالطابعة')
                         };
                     })
@@ -1036,8 +1040,8 @@
                         this.printerStatus = {
                             tested: true,
                             success: false,
-                            printer: 'Xprinter XP-233B',
-                            port: 'USB001',
+                            printer: 'Xprinter XP-233B #2',
+                            port: 'USB003',
                             message: 'حدث خطأ أثناء فحص اتصال الطابعة. يرجى التأكد من تشغيل الطابعة وتوصيل الكابل.'
                         };
                     });
@@ -1066,7 +1070,7 @@
                         body: JSON.stringify({
                             items: this.itemsQueue,
                             config: this.config,
-                            printer_name: 'Xprinter XP-233B'
+                            printer_name: this.selectedPrinter || ''
                         })
                     })
                     .then(res => res.json())
@@ -1076,8 +1080,8 @@
                             this.printerStatus = {
                                 tested: true,
                                 success: true,
-                                printer: 'Xprinter XP-233B',
-                                port: 'USB001',
+                                printer: resData.printer || this.selectedPrinter || 'Xprinter XP-233B #2',
+                                port: resData.port || 'USB003',
                                 message: '✅ ' + resData.message
                             };
                         } else {

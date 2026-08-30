@@ -566,8 +566,9 @@ class ProductController extends Controller
 
         try {
             $psCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -Command "' .
-                '$printers = @(Get-Printer | Select-Object Name, PortName, PrinterStatus, Default); ' .
-                '$target = $printers | Where-Object { $_.Name -like \'*Xprinter*\' -or $_.Name -like \'*POS*\' -or $_.Default -eq $true } | Select-Object -First 1; ' .
+                '$printers = @(Get-WmiObject -Class Win32_Printer | Select-Object Name, PortName, WorkOffline, PrinterStatus, Default); ' .
+                '$target = $printers | Where-Object { ($_.Name -like \'*Xprinter*\' -or $_.Name -like \'*XP-*\') -and $_.WorkOffline -eq $false } | Select-Object -First 1; ' .
+                'if (-not $target) { $target = $printers | Where-Object { $_.Name -like \'*Xprinter*\' -or $_.Name -like \'*XP-*\' } | Select-Object -First 1; } ' .
                 'if (-not $target -and $printers.Count -gt 0) { $target = $printers[0]; } ' .
                 '$testCode = -1; ' .
                 'if ($target) { ' .
@@ -592,12 +593,12 @@ class ProductController extends Controller
 
                 return response()->json([
                     'success' => true,
-                    'printer' => $matchedPrinter['Name'] ?? 'Xprinter XP-233B',
-                    'port' => $matchedPrinter['PortName'] ?? 'USB001',
-                    'status' => $matchedPrinter['PrinterStatus'] ?? 'Normal',
+                    'printer' => $matchedPrinter['Name'] ?? 'Xprinter XP-233B #2',
+                    'port' => $matchedPrinter['PortName'] ?? 'USB003',
+                    'status' => 'متصل (Online)',
                     'test_code' => $testResult,
                     'all_printers' => $printers,
-                    'message' => 'تم الاتصال بالطابعة بنجاح: ' . ($matchedPrinter['Name'] ?? 'Xprinter') . ' على منفذ (' . ($matchedPrinter['PortName'] ?? 'USB001') . ') وتم إرسال أمر فحص فوري.'
+                    'message' => 'تم الاتصال بنجاح بالطابعة المتصلة: ' . ($matchedPrinter['Name'] ?? 'Xprinter') . ' على المنفذ النشط (' . ($matchedPrinter['PortName'] ?? 'USB003') . ').'
                 ]);
             }
         } catch (\Throwable $e) {
@@ -618,7 +619,7 @@ class ProductController extends Controller
     {
         $items = $request->input('items', []);
         $config = $request->input('config', []);
-        $printerName = $request->input('printer_name', 'Xprinter XP-233B');
+        $printerName = $request->input('printer_name', '');
 
         if (empty($items)) {
             return response()->json(['success' => false, 'message' => 'قائمة الملصقات فارغة'], 422);
@@ -691,7 +692,7 @@ class ProductController extends Controller
         file_put_contents($tempFile, $tspl);
 
         $psScript = storage_path('app/print_raw.ps1');
-        $command = 'powershell -NoProfile -ExecutionPolicy Bypass -File "' . $psScript . '" -PrinterName "' . $printerName . '" -RawFile "' . $tempFile . '"';
+        $command = 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' . $psScript . '" -PrinterName "' . $printerName . '" -RawFile "' . $tempFile . '"';
         $output = @shell_exec($command);
         @unlink($tempFile);
 
