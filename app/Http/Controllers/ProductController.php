@@ -15,8 +15,31 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $products = Product::with('category')->latest()->get();
-        return view('products.index', compact('products'));
+        $branchId = selected_branch_id();
+
+        $query = Product::with(['category', 'inventories' => function ($q) use ($branchId) {
+            if ($branchId !== 'all') {
+                $q->where('branch_id', $branchId);
+            }
+        }]);
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%")
+                  ->orWhere('barcode', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->input('category_id'));
+        }
+
+        $products = $query->latest()->get();
+        $categories = Category::all();
+
+        return view('products.index', compact('products', 'categories'));
     }
 
     public function create()

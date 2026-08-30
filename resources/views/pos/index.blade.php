@@ -317,18 +317,21 @@
                     this.focusSearch();
                 },
                 handleEnterKey() {
-                    const list = this.filteredProducts;
-                    if (list.length > 0) {
-                        this.addToCart(list[0]);
-                        // If Auto-Checkout on Barcode is enabled in settings
-                        if (this.autoCheckoutOnBarcode && this.cart.length > 0) {
-                            this.$nextTick(() => {
-                                this.checkout();
-                            });
+                    const query = this.searchQuery.trim();
+                    if (query.length > 0) {
+                        const list = this.filteredProducts;
+                        if (list.length > 0) {
+                            this.addToCart(list[0]);
+                        } else {
+                            alert('⚠️ لم يتم العثور على منتج يطابق الباركود أو البحث.');
                         }
-                    } else {
                         this.searchQuery = '';
                         this.focusSearch();
+                    } else {
+                        // If search query is empty and user hits Enter: trigger checkout!
+                        if (this.cart.length > 0 && !this.isCheckingOut) {
+                            this.checkout();
+                        }
                     }
                 },
                 removeFromCart(index) {

@@ -41,10 +41,12 @@
                         @forelse($stock as $inv)
                             @php
                                 $prod = $inv->product;
+                                if (!$prod) continue;
                                 $status = 'ok';
+                                $minStock = $prod->minimum_stock ?? 5;
                                 if ($inv->quantity <= 0) {
                                     $status = 'empty';
-                                } elseif ($inv->quantity <= $prod->minimum_stock) {
+                                } elseif ($inv->quantity <= $minStock) {
                                     $status = 'warning';
                                 }
                             @endphp

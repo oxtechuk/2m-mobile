@@ -17,7 +17,7 @@ class InventoryController extends Controller
     {
         $branchId = selected_branch_id();
 
-        $query = Inventory::with(['product.category', 'branch']);
+        $query = Inventory::whereHas('product')->with(['product.category', 'branch']);
         if ($branchId !== 'all') {
             $query->where('branch_id', $branchId);
         }
