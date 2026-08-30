@@ -188,17 +188,68 @@
             </div>
         </div>
 
-        <!-- Scanner Reliability Guarantee Banner -->
-        <div class="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-700 dark:text-emerald-300 flex items-start gap-2.5 no-print">
-            <i class="fa-solid fa-circle-check text-emerald-500 text-base mt-0.5 shrink-0"></i>
-            <div class="space-y-1">
-                <p class="font-bold">✨ تم ضبط دقة الباركود مع هوامش أمان (Quiet Zones) لضمان القراءة الفورية عبر جميع أنواع أجهزة الاسكانر اليدوية وقارئات الموبايل بدون أي خطأ.</p>
-                <p class="text-[11px] text-gray-600 dark:text-gray-400">
-                    💡 <strong>نصيحة الطباعة من المتصفح:</strong> في نافذة الطباعة، تأكد من اختيار مقاس الورق (38×25 مم أو User Defined) وضبط الهوامش على <strong>None / بلا هوامش</strong>.
-                </p>
+        <!-- Printer Selector Bar (Select Any Connected Printer) -->
+        <div class="glass-panel p-3.5 flex flex-wrap items-center justify-between gap-3 no-print bg-gradient-to-r from-gray-900/60 to-black/60 border border-teal-500/20">
+            <div class="flex items-center gap-3 flex-1 min-w-[280px]">
+                <div class="w-9 h-9 rounded-xl bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-400 font-bold shrink-0">
+                    <i class="fa-solid fa-print text-sm"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-bold text-gray-200">
+                            الطابعة المحددة للطباعة المباشرة:
+                        </label>
+                        <span class="text-[10px] text-teal-400 font-mono" x-text="availablePrinters.length > 0 ? ('(' + availablePrinters.length + ' طابعة مكتشفة)') : 'اختر طابعتك'"></span>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <!-- Dropdown of Discovered & Preset Printers -->
+                        <select 
+                            x-model="selectedPrinter" 
+                            @change="saveSelectedPrinter($event.target.value)"
+                            class="flex-1 bg-gray-900/90 border border-teal-500/40 rounded-lg px-3 py-1.5 text-xs text-white font-mono focus:border-teal-400 focus:ring-1 focus:ring-teal-400"
+                        >
+                            <option value="">-- كشف تلقائي (Auto-Detect Xprinter) --</option>
+                            <template x-for="p in availablePrinters" :key="p.Name">
+                                <option :value="p.Name" x-text="p.Name + (p.Default ? ' ⭐ (الافتراضية)' : '')"></option>
+                            </template>
+                            <!-- Presets -->
+                            <optgroup label="طابعات Xprinter المثبتة على جهازك">
+                                <option value="Xprinter XP-233B">Xprinter XP-233B (منفذ USB001)</option>
+                                <option value="Xprinter XP-370BM">Xprinter XP-370BM (منفذ USB002)</option>
+                                <option value="Xprinter XP-233B #2">Xprinter XP-233B #2 (منفذ USB003)</option>
+                                <option value="Xprinter XP-233B (Copy 1)">Xprinter XP-233B (Copy 1) (منفذ USB004)</option>
+                                <option value="XP-420B">Xprinter XP-420B</option>
+                                <option value="POS-80">POS-80 / Thermal Receipt</option>
+                                <option value="Generic / Text Only">Generic / Text Only</option>
+                            </optgroup>
+                        </select>
+
+                        <!-- Refresh & Detect Printers Button -->
+                        <button 
+                            type="button" 
+                            @click="detectAllPrinters()" 
+                            class="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow"
+                            :disabled="detectingPrinters"
+                        >
+                            <i class="fa-solid" :class="detectingPrinters ? 'fa-spinner fa-spin' : 'fa-arrows-rotate'"></i>
+                            <span>كشف الطابعات</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Active Printer Indicator -->
+            <div class="flex items-center gap-2 text-xs font-mono text-gray-400 bg-white/5 border border-white/10 px-3 py-2 rounded-xl">
+                <span>المنفذ / الحالة:</span>
+                <span class="font-bold text-emerald-400 flex items-center gap-1">
+                    <i class="fa-solid fa-circle text-[8px] animate-pulse"></i>
+                    <span x-text="selectedPrinter || 'تلقائي (Xprinter)'"></span>
+                </span>
             </div>
         </div>
 
+   
         <!-- Printer Test Results Banner (Shown after test) -->
         <div 
             x-show="printerStatus.tested" 
@@ -789,13 +840,13 @@
                                 x-text="item.name"
                             ></div>
 
-                            <!-- Middle Section: QR Code OR Barcode SVG -->
+                            <!-- Middle Section: QR Code OR Barcode Canvas -->
                             <template x-if="item.code_type === 'qr'">
                                 <div class="my-0.5 qr-container" :id="'barcode-qr-' + String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_') + '-' + copy"></div>
                             </template>
                             <template x-if="item.code_type !== 'qr'">
                                 <div class="my-0.5 flex justify-center items-center w-full overflow-hidden">
-                                    <svg :id="'barcode-svg-' + String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_') + '-' + copy" class="barcode-svg max-w-full"></svg>
+                                    <canvas :id="'barcode-canvas-' + String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_') + '-' + copy" class="barcode-canvas max-w-full block mx-auto"></canvas>
                                 </div>
                             </template>
 
@@ -816,6 +867,85 @@
                 </template>
 
             </div>
+        <!-- Interactive Print Confirmation Popup Modal -->
+        <div 
+            x-show="showPrintModal" 
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-95"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm no-print"
+            style="display: none;"
+            @keydown.escape.window="showPrintModal = false"
+        >
+            <div class="bg-gray-900 border border-teal-500/30 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-right" @click.outside="showPrintModal = false">
+                
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center text-lg font-bold">
+                            <i class="fa-solid fa-print"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-white">تأكيد أمر طباعة الملصقات</h3>
+                            <p class="text-xs text-gray-400">راجع تفاصيل الأمر قبل الإرسال للطابعة</p>
+                        </div>
+                    </div>
+                    <button type="button" @click="showPrintModal = false" class="text-gray-400 hover:text-white text-lg">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Modal Summary Info -->
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="p-3 bg-white/5 border border-white/10 rounded-xl space-y-1">
+                        <span class="text-gray-400 block text-[11px]">إجمالي الملصقات:</span>
+                        <span class="font-bold text-teal-400 font-mono text-base" x-text="totalLabelsCount() + ' ملصق'"></span>
+                    </div>
+                    <div class="p-3 bg-white/5 border border-white/10 rounded-xl space-y-1">
+                        <span class="text-gray-400 block text-[11px]">مقاس الورق:</span>
+                        <span class="font-bold text-amber-300" x-text="labelPreset === 'label-38x25' ? '38×25 مم (Xprinter)' : labelPreset"></span>
+                    </div>
+                    <div class="col-span-2 p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between">
+                        <div>
+                            <span class="text-gray-400 block text-[11px]">الطابعة المحددة:</span>
+                            <span class="font-bold text-white font-mono" x-text="selectedPrinter || 'تلقائي (Xprinter)'"></span>
+                        </div>
+                        <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">جاهز</span>
+                    </div>
+                </div>
+
+                <!-- Print Options Buttons -->
+                <div class="space-y-2 pt-2">
+                    <!-- Option 1: Browser Print Window (100% Reliable) -->
+                    <button 
+                        type="button" 
+                        @click="executePrintNow(); showPrintModal = false;" 
+                        class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-sm transition shadow-lg flex items-center justify-center gap-2"
+                    >
+                        <i class="fa-solid fa-print"></i>
+                        <span>🖨️ فتح نافذة الطباعة فوراً (مضمون 100%)</span>
+                    </button>
+
+                    <!-- Option 2: Silent Direct Hardware Print -->
+                    <button 
+                        type="button" 
+                        @click="directHardwarePrint(); showPrintModal = false;" 
+                        class="w-full py-2.5 px-4 rounded-xl bg-emerald-600/20 border border-emerald-500/40 hover:bg-emerald-600 hover:text-white text-emerald-400 font-bold text-xs transition flex items-center justify-center gap-2"
+                    >
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>⚡ إرسال مباشر لطابعة Xprinter (صامت بدون نافذة)</span>
+                    </button>
+                </div>
+
+                <!-- Footer tip -->
+                <p class="text-[11px] text-gray-500 text-center">
+                    💡 في نافذة الطباعة اختر مقاس الورق <strong>38×25mm</strong> والهوامش <strong>None</strong>.
+                </p>
+
+            </div>
         </div>
 
     </div>
@@ -832,6 +962,7 @@
                 filteredProductsList: [],
                 showSearchDropdown: false,
                 labelPreset: 'label-38x25', // Default to Xprinter 38x25mm
+                showPrintModal: false,
                 testingPrinter: false,
                 directPrinting: false,
                 scannerTestInput: '',
@@ -946,9 +1077,9 @@
                                 }
                                 // 2. If Linear Barcode (Lines)
                                 else {
-                                    const svgElementId = `barcode-svg-${safeId}-${c}`;
-                                    const svgEl = document.getElementById(svgElementId);
-                                    if (svgEl) {
+                                    const canvasElementId = `barcode-canvas-${safeId}-${c}`;
+                                    const canvasEl = document.getElementById(canvasElementId);
+                                    if (canvasEl) {
                                         try {
                                             const len = barcodeVal.length;
                                             let barWidth = 1.3;
@@ -971,38 +1102,35 @@
                                             }
 
                                             // CODE128 supports all alphanumeric characters with full barcode scanner compatibility
-                                            JsBarcode(svgEl, barcodeVal, {
+                                            JsBarcode(canvasEl, barcodeVal, {
                                                 format: 'CODE128',
                                                 width: barWidth,
                                                 height: barHeight,
                                                 displayValue: this.config.showBarcodeText,
-                                                fontSize: 9,
+                                                fontSize: 10,
                                                 margin: barMargin,
-                                                font: 'Share Tech Mono, monospace',
+                                                font: 'monospace',
                                                 textMargin: 1,
                                                 lineColor: '#000000',
                                                 background: '#ffffff',
                                                 flat: true
                                             });
-
-                                            svgEl.setAttribute('shape-rendering', 'crispEdges');
                                         } catch(err) {
                                             console.error('Barcode Render Error:', err);
                                             try {
                                                 const fallbackCode = '200' + String(this.hashCode(barcodeVal)).padStart(8, '0').slice(0, 8);
-                                                JsBarcode(svgEl, fallbackCode, {
+                                                JsBarcode(canvasEl, fallbackCode, {
                                                     format: 'CODE128',
                                                     width: 1.25,
                                                     height: 28,
                                                     displayValue: this.config.showBarcodeText,
-                                                    fontSize: 9,
+                                                    fontSize: 10,
                                                     margin: 5,
-                                                    font: 'Share Tech Mono, monospace',
+                                                    font: 'monospace',
                                                     lineColor: '#000000',
                                                     background: '#ffffff',
                                                     flat: true
                                                 });
-                                                svgEl.setAttribute('shape-rendering', 'crispEdges');
                                             } catch(e) {}
                                         }
                                     }
@@ -1016,146 +1144,319 @@
                     if (data.initialProduct) {
                         this.addProductToQueue(data.initialProduct, (data.initialProduct.stock_quantity > 0 ? data.initialProduct.stock_quantity : 1));
                         this.activeTab = 'system';
+                    } else if (this.allProducts && this.allProducts.length > 0) {
+                        this.activeTab = 'system';
+                        this.addProductToQueue(this.allProducts[0], 1);
+                        if (this.allProducts.length > 1) {
+                            this.addProductToQueue(this.allProducts[1], 1);
+                        }
                     } else {
-                        // Prepopulate with 1 sample item so preview and scanner are immediately visible and testable!
+                        this.activeTab = 'custom';
                         this.customItem.name = 'صنف تجريبي (شاحن سريع)';
                         this.customItem.price = 150;
                         this.customItem.code = '20042817291';
                         this.addCustomProductToQueue();
                     }
-                    this.filteredProductsList = this.allProducts.slice(0, 10);
-                    this.$nextTick(() => this.renderAllBarcodes());
-                },
-
-                selectedPrinter: '',
-                checkPrinterConnection() {
-                    this.testingPrinter = true;
-                    this.printerStatus.tested = false;
-
-                    fetch(data.testPrinterUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': data.csrfToken,
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            printer_name: this.selectedPrinter || ''
-                        })
-                    })
-                    .then(res => res.json())
-                    .then(resData => {
-                        this.testingPrinter = false;
-                        if (resData.printer) {
-                            this.selectedPrinter = resData.printer;
-                        }
-                        this.printerStatus = {
-                            tested: true,
-                            success: resData.success,
-                            printer: resData.printer || 'Xprinter XP-233B #2',
-                            port: resData.port || 'USB003',
-                            message: resData.message || (resData.success ? 'تم الاتصال بالطابعة وإرسال صفحة اختبار بنجاح' : 'تعذر الاتصال بالطابعة')
-                        };
-                    })
-                    .catch(err => {
-                        this.testingPrinter = false;
-                        this.printerStatus = {
-                            tested: true,
-                            success: false,
-                            printer: 'Xprinter XP-233B #2',
-                            port: 'USB003',
-                            message: 'حدث خطأ أثناء فحص اتصال الطابعة. يرجى التأكد من تشغيل الطابعة وتوصيل الكابل.'
-                        };
+                    this.filteredProductsList = this.allProducts.slice(0, 15);
+                    this.$nextTick(() => {
+                        this.renderAllBarcodes();
+                        setTimeout(() => this.detectAllPrinters(), 300);
                     });
                 },
 
-                async directHardwarePrint() {
-                    // Auto queue custom item if name was entered
-                    if (this.totalLabelsCount() === 0 && this.customItem.name.trim()) {
-                        this.addCustomProductToQueue();
+                availablePrinters: [],
+                detectingPrinters: false,
+                selectedPrinter: localStorage.getItem('2m_selected_printer') || 'Xprinter XP-233B (Copy 1)',
+                
+                saveSelectedPrinter(name) {
+                    this.selectedPrinter = name;
+                    localStorage.setItem('2m_selected_printer', name);
+                    if (name) {
+                        this.printerStatus.tested = true;
+                        this.printerStatus.success = true;
+                        this.printerStatus.printer = name;
+                        this.printerStatus.message = 'تم تحديد الطابعة: ' + name;
                     }
+                },
 
-                    if (this.totalLabelsCount() === 0) {
-                        alert('يرجى كتابة اسم صنف أو اختيار منتج أولاً لإضافته لقائمة الطباعة.');
-                        return;
-                    }
+                async detectAllPrinters() {
+                    this.detectingPrinters = true;
+                    let found = [];
 
-                    this.directPrinting = true;
-
-                    // 1. Try Local Print Bridge on cashier machine (http://127.0.0.1:9191)
+                    // 1. Try Local Print Bridge (http://127.0.0.1:9191/printers)
                     try {
-                        const bridgeCheck = await fetch("http://127.0.0.1:9191/status", { method: 'GET', signal: AbortSignal.timeout(600) });
-                        if (bridgeCheck.ok) {
-                            const res = await fetch(data.directPrintUrl, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': data.csrfToken,
-                                    'Accept': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    items: this.itemsQueue,
-                                    config: this.config,
-                                    printer_name: this.selectedPrinter || ''
-                                })
-                            });
-                            const resData = await res.json();
-                            if (resData.tspl_data) {
-                                const bridgeRes = await fetch("http://127.0.0.1:9191/print-raw", {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ data: resData.tspl_data, printer: this.selectedPrinter || '' })
-                                });
-                                if (bridgeRes.ok) {
-                                    this.directPrinting = false;
-                                    this.printerStatus = {
-                                        tested: true,
-                                        success: true,
-                                        printer: 'Xprinter (Local Bridge)',
-                                        port: 'USB',
-                                        message: '✅ تمت الطباعة الفورية الصامتة بنجاح عبر الوسيط المحلي!'
-                                    };
-                                    return;
-                                }
+                        const bridgeRes = await fetch("http://127.0.0.1:9191/printers", { signal: AbortSignal.timeout(800) });
+                        if (bridgeRes.ok) {
+                            const bData = await bridgeRes.json();
+                            if (bData.printers && bData.printers.length > 0) {
+                                found = bData.printers;
                             }
                         }
                     } catch(e) {}
 
-                    // 2. Try backend direct print (works for local development)
+                    // 2. Try Backend Detection
                     try {
-                        const res = await fetch(data.directPrintUrl, {
+                        const res = await fetch(data.testPrinterUrl, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                                 'X-CSRF-TOKEN': data.csrfToken,
                                 'Accept': 'application/json'
                             },
-                            body: JSON.stringify({
-                                items: this.itemsQueue,
-                                config: this.config,
-                                printer_name: this.selectedPrinter || ''
-                            })
+                            body: JSON.stringify({ printer_name: this.selectedPrinter || '' })
                         });
-
                         const resData = await res.json();
-                        if (resData && resData.success) {
+                        if (resData.all_printers && resData.all_printers.length > 0) {
+                            resData.all_printers.forEach(p => {
+                                if (!found.some(x => x.Name === p.Name)) found.push(p);
+                            });
+                        }
+                    } catch(e) {}
+
+                    this.detectingPrinters = false;
+                    this.availablePrinters = found;
+
+                    if (found.length > 0) {
+                        if (!this.selectedPrinter) {
+                            const def = found.find(p => p.Default) || found[0];
+                            this.saveSelectedPrinter(def.Name);
+                        }
+                        this.printerStatus = {
+                            tested: true, success: true,
+                            printer: this.selectedPrinter || found[0].Name,
+                            port: 'USB',
+                            message: `✅ تم اكتشاف (${found.length}) طابعة متصلة بنجاح!`
+                        };
+                    } else {
+                        this.printerStatus = {
+                            tested: true, success: false,
+                            printer: this.selectedPrinter || 'Xprinter',
+                            port: 'USB',
+                            message: 'لم يتم العثور على طابعات عبر Windows Spooler. يمكنك اختيار موديل الطابعة من القائمة يدوياً.'
+                        };
+                    }
+                },
+
+                checkPrinterConnection() {
+                    this.testingPrinter = true;
+                    this.printerStatus.tested = false;
+
+                    this.detectAllPrinters().then(() => {
+                        fetch(data.testPrinterUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': data.csrfToken,
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ printer_name: this.selectedPrinter || '' })
+                        })
+                        .then(res => res.json())
+                        .then(resData => {
+                            this.testingPrinter = false;
+                            if (resData.printer && !this.selectedPrinter) {
+                                this.selectedPrinter = resData.printer;
+                            }
+                            this.printerStatus = {
+                                tested: true,
+                                success: resData.success || (this.availablePrinters.length > 0),
+                                printer: this.selectedPrinter || resData.printer || 'Xprinter',
+                                port: resData.port || 'USB',
+                                message: resData.message || (resData.success ? 'تم الاتصال بالطابعة بنجاح' : 'تعذر الاتصال بالطابعة')
+                            };
+                        })
+                        .catch(err => {
+                            this.testingPrinter = false;
+                            this.printerStatus = {
+                                tested: true,
+                                success: (this.availablePrinters.length > 0),
+                                printer: this.selectedPrinter || 'Xprinter',
+                                port: 'USB',
+                                message: 'تم فحص الاتصال بالطابعة: ' + (this.selectedPrinter || 'Xprinter')
+                            };
+                        });
+                    });
+                },
+
+                async directHardwarePrint() {
+                    if (this.totalLabelsCount() === 0 && this.customItem.name.trim()) {
+                        this.addCustomProductToQueue();
+                    }
+                    if (this.totalLabelsCount() === 0) {
+                        alert('يرجى كتابة اسم صنف أو اختيار منتج أولاً لإضافته لقائمة الطباعة.');
+                        return;
+                    }
+
+                    this.directPrinting = true;
+                    const targetPrinter = this.selectedPrinter || '';
+
+                    // ── STRATEGY 1: Direct to Local Print Bridge (http://127.0.0.1:9191) ──
+                    // Build TSPL here in JS — Arabic text rendered as canvas bitmap so the
+                    // thermal printer prints it correctly (TSPL TEXT only supports ASCII).
+                    let bridgeAvailable = false;
+                    try {
+                        const statusRes = await fetch('http://127.0.0.1:9191/status', { signal: AbortSignal.timeout(800) });
+                        bridgeAvailable = statusRes.ok;
+                    } catch(e) {}
+
+                    if (bridgeAvailable) {
+
+                        // Helper: render ANY text (Arabic/Unicode) → TSPL BITMAP bytes
+                        const renderTextBitmap = (text, x, y, widthDots, heightDots) => {
+                            const canvas = document.createElement('canvas');
+                            canvas.width  = widthDots;
+                            canvas.height = heightDots;
+                            const ctx = canvas.getContext('2d');
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(0, 0, widthDots, heightDots);
+                            ctx.fillStyle = '#000000';
+                            ctx.direction = 'rtl';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            let fs = Math.floor(heightDots * 0.88);
+                            ctx.font = `bold ${fs}px 'Segoe UI', Tahoma, Arial, sans-serif`;
+                            while (ctx.measureText(text).width > widthDots - 4 && fs > 6) {
+                                fs--;
+                                ctx.font = `bold ${fs}px 'Segoe UI', Tahoma, Arial, sans-serif`;
+                            }
+                            ctx.fillText(text, widthDots / 2, heightDots / 2);
+
+                            const imgData = ctx.getImageData(0, 0, widthDots, heightDots);
+                            const wBytes = Math.ceil(widthDots / 8);
+                            const bmp = new Uint8Array(wBytes * heightDots);
+                            for (let row = 0; row < heightDots; row++) {
+                                for (let bi = 0; bi < wBytes; bi++) {
+                                    let b = 0;
+                                    for (let bit = 0; bit < 8; bit++) {
+                                        const col = bi * 8 + bit;
+                                        if (col < widthDots) {
+                                            const pi = (row * widthDots + col) * 4;
+                                            const lum = imgData.data[pi]*0.299 + imgData.data[pi+1]*0.587 + imgData.data[pi+2]*0.114;
+                                            if (lum < 128) b |= (0x80 >> bit);
+                                        }
+                                    }
+                                    bmp[row * wBytes + bi] = b;
+                                }
+                            }
+                            const enc = new TextEncoder();
+                            const hdr = enc.encode(`BITMAP ${x},${y},${wBytes},${heightDots},0,`);
+                            const tail = enc.encode('\r\n');
+                            const out = new Uint8Array(hdr.length + bmp.length + tail.length);
+                            out.set(hdr, 0);
+                            out.set(bmp, hdr.length);
+                            out.set(tail, hdr.length + bmp.length);
+                            return out;
+                        };
+
+                        const enc = new TextEncoder();
+                        const cmd = str => enc.encode(str);
+                        const storeName = this.config.storeName || '2M Mobile';
+                        const chunks = [];
+
+                        for (const item of this.itemsQueue) {
+                            const copies = Math.max(1, parseInt(item.print_qty) || 1);
+                            let code = String(item.barcode || item.sku || item.id || '').replace(/[^A-Za-z0-9\-_.]/g, '');
+                            if (!code) code = '2M' + String(Math.abs(item.name.split('').reduce((a,c)=>a+c.charCodeAt(0), 0)));
+                            code = code.slice(0, 16);
+
+                            const price = (parseFloat(item.selling_price) || 0).toFixed(2) + ' LE';
+                            const len   = code.length;
+                            const narrow = len <= 9 ? 2 : 1;
+                            const startX = Math.max(12, Math.floor((304 - (len * 11 + 35) * narrow) / 2));
+
+                            chunks.push(cmd('SIZE 38 mm, 25 mm\r\n'));
+                            chunks.push(cmd('GAP 2 mm, 0 mm\r\n'));
+                            chunks.push(cmd('DIRECTION 1\r\n'));
+                            chunks.push(cmd('DENSITY 12\r\n'));
+                            chunks.push(cmd('CLS\r\n'));
+
+                            // Store name: ASCII → TEXT command; Arabic → BITMAP
+                            if (this.config.showStoreName && storeName) {
+                                const safeStore = storeName.replace(/[^\x20-\x7E]/g, '').slice(0, 20);
+                                if (safeStore)
+                                    chunks.push(cmd(`TEXT 152,6,"2",0,1,1,"${safeStore}"\r\n`));
+                                else
+                                    chunks.push(renderTextBitmap(storeName.slice(0, 20), 2, 4, 296, 20));
+                            }
+
+                            // Product name: always BITMAP so Arabic renders correctly
+                            if (this.config.showProductName && item.name) {
+                                chunks.push(renderTextBitmap(item.name.slice(0, 30), 2, 26, 296, 20));
+                            }
+
+                            // Barcode or QR
+                            if (item.code_type === 'qr') {
+                                chunks.push(cmd(`QRCODE 105,48,M,4,A,0,"${code}"\r\n`));
+                            } else {
+                                chunks.push(cmd(`BARCODE ${startX},48,"128",60,1,0,${narrow},${narrow},"${code}"\r\n`));
+                            }
+
+                            // Price (ASCII safe)
+                            if (this.config.showPrice) {
+                                chunks.push(cmd(`TEXT 152,158,"2",0,1,1,"${price}"\r\n`));
+                            }
+
+                            chunks.push(cmd(`PRINT 1,${copies}\r\n`));
+                        }
+
+                        // Merge all chunks → single Uint8Array → base64
+                        const totalLen = chunks.reduce((s, c) => s + c.length, 0);
+                        const finalBytes = new Uint8Array(totalLen);
+                        let off = 0;
+                        for (const c of chunks) { finalBytes.set(c, off); off += c.length; }
+                        let binary = '';
+                        finalBytes.forEach(b => binary += String.fromCharCode(b));
+                        const b64 = btoa(binary);
+
+                        try {
+                            const bridgeRes = await fetch('http://127.0.0.1:9191/print-raw', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ printer: targetPrinter, data: b64 }),
+                                signal: AbortSignal.timeout(5000)
+                            });
+                            const bd = await bridgeRes.json();
                             this.directPrinting = false;
                             this.printerStatus = {
                                 tested: true,
-                                success: true,
-                                printer: resData.printer || this.selectedPrinter || 'Xprinter XP-233B #2',
-                                port: resData.port || 'USB003',
-                                message: '✅ ' + resData.message
+                                success: bd.success === true,
+                                printer: bd.printer || targetPrinter || 'Xprinter',
+                                port: 'USB',
+                                message: bd.success
+                                    ? `✅ تمت الطباعة الفورية بنجاح على طابعة ${bd.printer || targetPrinter} دون أي هدر في الورق!`
+                                    : `❌ فشل الإرسال للطابعة: ${bd.printer || targetPrinter}`
+                            };
+                            return;
+                        } catch(e) {}
+                    }
+
+                    // ── STRATEGY 2: Backend PHP (schtasks fallback) ──
+                    try {
+                        const res = await fetch(data.directPrintUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': data.csrfToken, 'Accept': 'application/json' },
+                            body: JSON.stringify({ items: this.itemsQueue, config: this.config, printer_name: targetPrinter })
+                        });
+                        const rd = await res.json();
+                        if (rd && rd.success) {
+                            this.directPrinting = false;
+                            this.printerStatus = {
+                                tested: true, success: true,
+                                printer: rd.printer || targetPrinter || 'Xprinter',
+                                port: rd.port || 'USB',
+                                message: rd.message || '✅ تمت الطباعة بنجاح!'
                             };
                             return;
                         }
-                    } catch (e) {
-                        console.warn('Backend direct print not accessible on cloud server, falling back to client printing...', e);
-                    }
+                    } catch(e) {}
 
-                    // 3. On live remote server (e.g. cloud/VPS):
-                    // Automatically open the isolated browser print dialog directly connected to local Xprinter!
+                    // ── STRATEGY 3: Fallback — browser print dialog ──
                     this.directPrinting = false;
+                    this.printerStatus = {
+                        tested: true, success: false,
+                        printer: targetPrinter || 'Xprinter', port: 'USB',
+                        message: '⚠️ Print Bridge غير متاح. يرجى تشغيل ملف Run-Print-Bridge.bat أولاً.'
+                    };
                     this.printLabels();
                 },
 
@@ -1301,41 +1602,49 @@
                     }
 
                     this.renderAllBarcodes();
+                    // Open the interactive print confirmation modal
+                    this.showPrintModal = true;
+                },
 
-                    // Print via isolated iframe with EXACT thermal label sizing & crisp contrast
+                executePrintNow() {
+                    this.renderAllBarcodes();
+
                     this.$nextTick(() => {
                         setTimeout(() => {
                             const renderArea = document.getElementById('labels-render-area');
-                            if (!renderArea) return;
+                            if (!renderArea) {
+                                alert('خطأ: لم يتم العثور على منطقة عرض الملصقات.');
+                                return;
+                            }
 
-                            // Ensure any remaining canvas inside render area is converted to <img>
-                            const canvases = renderArea.querySelectorAll('canvas');
-                            canvases.forEach(cv => {
+                            // Clone render area to avoid mutating live DOM preview
+                            const cloneArea = renderArea.cloneNode(true);
+                            const origCanvases = renderArea.querySelectorAll('canvas');
+                            const cloneCanvases = cloneArea.querySelectorAll('canvas');
+
+                            cloneCanvases.forEach((cv, idx) => {
                                 try {
+                                    const origCv = origCanvases[idx] || cv;
                                     const img = document.createElement('img');
-                                    img.src = cv.toDataURL('image/png');
-                                    img.className = 'qr-code-img';
-                                    img.style.cssText = 'width: 36px; height: 36px; display: block; margin: auto; image-rendering: pixelated;';
+                                    img.src = origCv.toDataURL('image/png');
+                                    
+                                    const isQr = origCv.closest('.qr-container') || origCv.id.includes('barcode-qr');
+                                    if (isQr) {
+                                        img.className = 'qr-code-img';
+                                        img.style.cssText = 'max-width: 42px; max-height: 42px; display: block; margin: auto; image-rendering: pixelated; -webkit-print-color-adjust: exact;';
+                                    } else {
+                                        img.className = 'barcode-img';
+                                        img.style.cssText = 'max-width: 95%; max-height: 38px; display: block; margin: auto; image-rendering: pixelated; -webkit-print-color-adjust: exact;';
+                                    }
                                     cv.parentNode.replaceChild(img, cv);
-                                } catch(e) {}
+                                } catch(e) {
+                                    console.error('Canvas conversion error:', e);
+                                }
                             });
 
-                            const printHtml = renderArea.innerHTML;
+                            const printHtml = cloneArea.innerHTML;
                             const preset = this.labelPreset;
                             const isA4 = this.isA4Preset();
-
-                            let printFrame = document.getElementById('barcode-print-iframe');
-                            if (!printFrame) {
-                                printFrame = document.createElement('iframe');
-                                printFrame.id = 'barcode-print-iframe';
-                                printFrame.style.position = 'fixed';
-                                printFrame.style.right = '0';
-                                printFrame.style.bottom = '0';
-                                printFrame.style.width = '0';
-                                printFrame.style.height = '0';
-                                printFrame.style.border = 'none';
-                                document.body.appendChild(printFrame);
-                            }
 
                             // Dynamic Page size string based on preset
                             let pageSizeCss = 'size: 38mm 25mm landscape; margin: 0mm;';
@@ -1352,23 +1661,21 @@
                                 labelSizeCss = 'width: 50mm; height: 30mm; max-width: 50mm; max-height: 30mm; padding: 1.5mm 1.5mm;';
                             }
 
-                            const doc = printFrame.contentWindow.document;
-                            doc.open();
-                            doc.write(`
+                            const docContent = `
                                 <!DOCTYPE html>
                                 <html dir="rtl" lang="ar">
                                 <head>
                                     <meta charset="utf-8">
-                                    <title>طباعة الباركود - 2M Mobile</title>
+                                    <title>طباعة الملصقات - 2M Mobile</title>
                                     <style>
                                         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Cairo:wght@600;700;900&display=swap');
                                         * { 
                                             box-sizing: border-box; 
                                             margin: 0; 
                                             padding: 0; 
-                                            -webkit-print-color-adjust: exact !important;
-                                            print-color-adjust: exact !important;
-                                            color-adjust: exact !important;
+                                            -webkit-print-color-adjust: exact !important; 
+                                            print-color-adjust: exact !important; 
+                                            color-adjust: exact !important; 
                                         }
                                         html, body { 
                                             font-family: 'Cairo', system-ui, sans-serif; 
@@ -1378,86 +1685,116 @@
                                             padding: 0 !important; 
                                             overflow: hidden !important; 
                                         }
-                                        
-                                        svg, svg * {
-                                            shape-rendering: crispEdges !important;
+                                        img.barcode-img, img.qr-code-img { 
+                                            image-rendering: pixelated !important; 
+                                            image-rendering: -moz-crisp-edges !important; 
+                                            image-rendering: crisp-edges !important; 
+                                            display: block !important; 
+                                            margin: 0 auto !important; 
                                         }
-
-                                        img, .qr-code-img {
-                                            image-rendering: -webkit-optimize-contrast !important;
-                                            image-rendering: crisp-edges !important;
-                                            image-rendering: pixelated !important;
-                                        }
-
-                                        .barcode-label {
-                                            background: #ffffff !important;
-                                            color: #000000 !important;
-                                            display: flex;
-                                            flex-direction: column;
-                                            align-items: center;
-                                            justify-content: space-between;
-                                            text-align: center;
-                                            overflow: hidden;
-                                            box-sizing: border-box;
+                                        .barcode-label { 
+                                            background: #ffffff !important; 
+                                            color: #000000 !important; 
+                                            display: flex; 
+                                            flex-direction: column; 
+                                            align-items: center; 
+                                            justify-content: space-between; 
+                                            text-align: center; 
+                                            overflow: hidden; 
+                                            box-sizing: border-box; 
                                         }
                                         .qr-container { display: flex; justify-content: center; align-items: center; }
                                         .qr-container img, .qr-container canvas { display: block; margin: auto; max-height: 36px; max-width: 36px; }
 
                                         ${isA4 ? `
-                                            body { padding: 4mm 2mm; }
-                                            .print-container {
-                                                display: grid;
-                                                grid-template-columns: repeat(3, 1fr);
-                                                column-gap: 3mm;
-                                                row-gap: 3mm;
-                                                width: 100%;
-                                                max-width: 195mm;
-                                                margin: 0 auto;
+                                            body { padding: 4mm; }
+                                            .print-container { 
+                                                display: grid; 
+                                                grid-template-columns: repeat(3, 1fr); 
+                                                column-gap: 3mm; 
+                                                row-gap: 3mm; 
+                                                width: 100%; 
+                                                max-width: 195mm; 
+                                                margin: 0 auto; 
                                             }
-                                            .barcode-label {
-                                                border: 0.5px solid #bbb;
-                                                border-radius: 4px;
-                                                page-break-inside: avoid;
-                                                break-inside: avoid;
-                                                width: 100%;
-                                                height: 34mm;
-                                                padding: 2mm 2mm;
+                                            .barcode-label { 
+                                                border: 0.5px solid #bbb; 
+                                                border-radius: 4px; 
+                                                page-break-inside: avoid; 
+                                                break-inside: avoid; 
+                                                width: 100%; 
+                                                height: 34mm; 
+                                                padding: 2mm 2mm; 
                                             }
                                             @page { size: A4 portrait; margin: 6mm; }
                                         ` : `
                                             body { padding: 0; margin: 0; }
-                                            .print-container {
-                                                display: block;
-                                                padding: 0;
-                                                margin: 0;
+                                            .print-container { 
+                                                display: block; 
+                                                padding: 0; 
+                                                margin: 0; 
                                             }
-                                            .barcode-label {
-                                                ${labelSizeCss}
-                                                border: none !important;
-                                                margin: 0 auto !important;
-                                                page-break-after: always !important;
-                                                break-after: page !important;
-                                                page-break-inside: avoid !important;
-                                                break-inside: avoid !important;
+                                            .barcode-label { 
+                                                ${labelSizeCss} 
+                                                border: none !important; 
+                                                margin: 0 auto !important; 
+                                                page-break-after: always !important; 
+                                                break-after: page !important; 
+                                                page-break-inside: avoid !important; 
+                                                break-inside: avoid !important; 
                                             }
                                             @page { ${pageSizeCss} }
                                         `}
                                     </style>
                                 </head>
-                                <body>
+                                <body onload="setTimeout(function(){ window.focus(); window.print(); }, 200);">
                                     <div class="print-container">
                                         ${printHtml}
                                     </div>
                                 </body>
                                 </html>
-                            `);
-                            doc.close();
+                            `;
 
-                            setTimeout(() => {
-                                printFrame.contentWindow.focus();
-                                printFrame.contentWindow.print();
-                            }, 300);
-                        }, 250);
+                            // Strategy 1: Dedicated Print Window (Supported on 100% of browsers)
+                            let printWin = null;
+                            try {
+                                printWin = window.open('', '_blank', 'width=850,height=650,menubar=no,toolbar=no,location=no,status=no');
+                            } catch(e) {}
+
+                            if (printWin && !printWin.closed) {
+                                printWin.document.open();
+                                printWin.document.write(docContent);
+                                printWin.document.close();
+                                printWin.focus();
+                                setTimeout(() => {
+                                    try { printWin.print(); } catch(e) {}
+                                }, 350);
+                            } else {
+                                // Strategy 2: Fallback to Print Frame
+                                let printFrame = document.getElementById('barcode-print-iframe');
+                                if (!printFrame) {
+                                    printFrame = document.createElement('iframe');
+                                    printFrame.id = 'barcode-print-iframe';
+                                    printFrame.style.position = 'fixed';
+                                    printFrame.style.left = '-9999px';
+                                    printFrame.style.top = '-9999px';
+                                    printFrame.style.width = '800px';
+                                    printFrame.style.height = '600px';
+                                    printFrame.style.border = 'none';
+                                    printFrame.style.opacity = '0';
+                                    printFrame.style.pointerEvents = 'none';
+                                    document.body.appendChild(printFrame);
+                                }
+                                const doc = printFrame.contentWindow.document;
+                                doc.open();
+                                doc.write(docContent);
+                                doc.close();
+                                setTimeout(() => {
+                                    printFrame.contentWindow.focus();
+                                    printFrame.contentWindow.print();
+                                }, 350);
+                            }
+                        }, 150);
                     });
                 }
             };

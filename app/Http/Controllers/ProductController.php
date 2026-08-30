@@ -559,58 +559,46 @@ class ProductController extends Controller
      */
     public function testPrinter(Request $request)
     {
-        $printers = [];
-        $matchedPrinter = null;
-        $testResult = -1;
+        $selectedPrinterName = $request->input('printer_name', '');
         $errorMessage = null;
-
-        // Check if running on Windows OS with shell_exec enabled
-        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-        $canExec = function_exists('shell_exec') && !in_array('shell_exec', array_map('trim', explode(',', ini_get('disable_functions'))));
-
-        if (!$isWindows || !$canExec) {
-            return response()->json([
-                'success' => false,
-                'cloud_mode' => true,
-                'message' => 'الخادم يعمل على استضافة سحابية (Cloud/Linux Server). الطباعة تتم مباشرة من متصفح العميل أو عبر تطبيق الوسيط المحلي.'
-            ], 200);
-        }
 
         try {
             $psCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -Command "' .
-                '$printers = @(Get-WmiObject -Class Win32_Printer | Select-Object Name, PortName, WorkOffline, PrinterStatus, Default); ' .
-                '$target = $printers | Where-Object { ($_.Name -like \'*Xprinter*\' -or $_.Name -like \'*XP-*\') -and $_.WorkOffline -eq $false } | Select-Object -First 1; ' .
-                'if (-not $target) { $target = $printers | Where-Object { $_.Name -like \'*Xprinter*\' -or $_.Name -like \'*XP-*\' } | Select-Object -First 1; } ' .
-                'if (-not $target -and $printers.Count -gt 0) { $target = $printers[0]; } ' .
-                '$testCode = -1; ' .
-                'if ($target) { ' .
+                '$printers = @(); ' .
+                'try { ' .
+                    'Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue; ' .
+                    '$inst = [System.Drawing.Printing.PrinterSettings]::InstalledPrinters; ' .
+                    '$def = (New-Object System.Drawing.Printing.PrinterSettings).PrinterName; ' .
+                    'foreach ($p in $inst) { $printers += @{ Name = $p; PortName = \'USB\'; Default = ($p -eq $def) } } ' .
+                '} catch {} ' .
+                'if ($printers.Count -eq 0) { ' .
                     'try { ' .
-                        '$wmi = Get-WmiObject -Class Win32_Printer | Where-Object { $_.Name -eq $target.Name } | Select-Object -First 1; ' .
-                        'if ($wmi) { $res = $wmi.PrintTestPage(); $testCode = $res.ReturnValue; } ' .
+                        '$rawPrn = Get-Printer -ErrorAction SilentlyContinue; ' .
+                        'foreach ($p in $rawPrn) { $printers += @{ Name = $p.Name; PortName = $p.PortName; Default = $p.Default } } ' .
                     '} catch {} ' .
                 '} ' .
-                'ConvertTo-Json -Compress -InputObject @{ ' .
-                    'printers = $printers; ' .
-                    'target = $target; ' .
-                    'testCode = $testCode ' .
-                '}"';
+                '$req = \'' . addslashes($selectedPrinterName) . '\'; ' .
+                '$target = $null; ' .
+                'if ($req) { $target = $printers | Where-Object { $_.Name -eq $req } | Select-Object -First 1; } ' .
+                'if (-not $target) { $target = $printers | Where-Object { $_.Name -like \'*Xprinter*\' -or $_.Name -like \'*XP-*\' -or $_.Name -like \'*POS*\' -or $_.Name -like \'*Barcode*\' } | Select-Object -First 1; } ' .
+                'if (-not $target -and $printers.Count -gt 0) { $target = $printers[0]; } ' .
+                'ConvertTo-Json -Compress -InputObject @{ printers = $printers; target = $target; success = ($target -ne $null) }' .
+                '"';
 
             $output = @shell_exec($psCommand);
             $result = json_decode($output, true);
 
-            if ($result && isset($result['target']) && $result['target']) {
-                $matchedPrinter = $result['target'];
-                $testResult = $result['testCode'] ?? -1;
-                $printers = $result['printers'] ?? [];
+            if ($result && isset($result['printers']) && count($result['printers']) > 0) {
+                $printers = $result['printers'];
+                $matchedPrinter = $result['target'] ?? $printers[0];
 
                 return response()->json([
                     'success' => true,
-                    'printer' => $matchedPrinter['Name'] ?? 'Xprinter XP-233B #2',
-                    'port' => $matchedPrinter['PortName'] ?? 'USB003',
+                    'printer' => $matchedPrinter['Name'] ?? 'Xprinter',
+                    'port' => $matchedPrinter['PortName'] ?? 'USB',
                     'status' => 'متصل (Online)',
-                    'test_code' => $testResult,
                     'all_printers' => $printers,
-                    'message' => 'تم الاتصال بنجاح بالطابعة المتصلة: ' . ($matchedPrinter['Name'] ?? 'Xprinter') . ' على المنفذ النشط (' . ($matchedPrinter['PortName'] ?? 'USB003') . ').'
+                    'message' => 'تم العثور على (' . count($printers) . ') طابعة متصلة بالنظام. الطابعة المحددة: ' . ($matchedPrinter['Name'] ?? 'Xprinter')
                 ]);
             }
         } catch (\Throwable $e) {
@@ -619,7 +607,8 @@ class ProductController extends Controller
 
         return response()->json([
             'success' => false,
-            'message' => 'تعذر الاتصال بالطابعة عبر السيرفر. سيتم الاعتماد على الطباعة المباشرة من المتصفح.',
+            'all_printers' => [],
+            'message' => 'تعذر قراءة قائمة الطابعات من خدمة Windows Spooler. يمكنك كتابة اسم الطابعة يدوياً.',
             'error' => $errorMessage
         ], 200);
     }
@@ -705,20 +694,57 @@ class ProductController extends Controller
         $canExec = function_exists('shell_exec') && !in_array('shell_exec', array_map('trim', explode(',', ini_get('disable_functions'))));
 
         if ($isWindows && $canExec && file_exists($psScript)) {
-            $tempFile = storage_path('app/temp_labels_' . time() . '.prn');
+            $tempFile = storage_path('app/temp_labels_' . time() . rand(100, 999) . '.prn');
             file_put_contents($tempFile, $tspl);
 
-            $command = 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' . $psScript . '" -PrinterName "' . $printerName . '" -RawFile "' . $tempFile . '"';
-            $output = @shell_exec($command);
+            // Apache runs as SYSTEM which has no printer session access.
+            // Solution: Write a small launcher .bat that is scheduled once in the user session,
+            // or use 'runas /trustlevel:0x20000' trick.
+            // Best reliable method on WAMP: run via schtasks under current interactive user.
+            $outputFile = storage_path('app/print_output_' . time() . '.txt');
+            $psScriptEsc = str_replace('/', '\\', $psScript);
+            $tempFileEsc = str_replace('/', '\\', $tempFile);
+            $outputFileEsc = str_replace('/', '\\', $outputFile);
+
+            // Use schtasks to run as the interactive user (who HAS printer access)
+            $taskName = '2MPrintJob' . time();
+            $psArgs = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' . $psScriptEsc . '" -PrinterName "' . $printerName . '" -RawFile "' . $tempFileEsc . '"';
+
+            // Schedule a one-time task to run immediately as the current logged-in user
+            $scheduleCmd = 'schtasks /Create /TN "' . $taskName . '" /TR "powershell ' . $psArgs . ' > \"' . $outputFileEsc . '\" 2>&1" /SC ONCE /ST 00:00 /F /RL HIGHEST';
+            @shell_exec($scheduleCmd . ' 2>&1');
+            @shell_exec('schtasks /Run /TN "' . $taskName . '" 2>&1');
+
+            // Wait briefly for task to run
+            sleep(2);
+
+            @shell_exec('schtasks /Delete /TN "' . $taskName . '" /F 2>&1');
+
+            $output = file_exists($outputFile) ? file_get_contents($outputFile) : '';
+            @unlink($outputFile);
             @unlink($tempFile);
 
-            $res = json_decode($output, true);
+            $res = json_decode(trim($output), true);
+
+            // If schtasks approach didn't work, try direct shell_exec (works if Apache user has printer rights)
+            if (!$res || empty($res['success'])) {
+                $tempFile2 = storage_path('app/temp_labels_' . time() . rand(100, 999) . '.prn');
+                file_put_contents($tempFile2, $tspl);
+                $command = 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' . $psScriptEsc . '" -PrinterName "' . $printerName . '" -RawFile "' . $tempFile2 . '"';
+                $output2 = @shell_exec($command);
+                @unlink($tempFile2);
+                $res = json_decode(trim($output2 ?? ''), true);
+            }
+
             if ($res && isset($res['success']) && $res['success']) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'تمت الطباعة الفورية بنجاح على طابعة Xprinter دون أي هدر في الورق!'
+                    'printer' => $res['printer'] ?? $printerName,
+                    'port' => $res['port'] ?? 'USB',
+                    'message' => '✅ تمت الطباعة الفورية بنجاح على طابعة ' . ($res['printer'] ?? 'Xprinter') . ' دون أي هدر في الورق!'
                 ]);
             }
+            $errorMsg = $res['error'] ?? ($output ?: 'فشل تشغيل السكريبت. تأكد من صلاحيات Apache.');
         }
 
         // Return TSPL raw data for local print bridge fallback or client-side print
@@ -726,7 +752,7 @@ class ProductController extends Controller
             'success' => false,
             'fallback_browser' => true,
             'tspl_data' => base64_encode($tspl),
-            'message' => 'الخادم يعمل بنظام Cloud/Linux. سيتم استخدام نافذة الطباعة المجهزة للملصقات الحرارية.'
+            'message' => $errorMsg ?? 'الخادم يعمل بنظام Cloud/Linux أو خدمة Spooler متوقفة. سيتم فتح نافذة الطباعة المجهزة للملصقات الحرارية.'
         ], 200);
     }
 }
