@@ -872,8 +872,10 @@
 
                 cleanBarcodeValue(item) {
                     let val = String(item.barcode || item.sku || '').trim();
+                    // Remove quotes, formulas, non-printable chars
+                    val = val.replace(/[\r\n\t="']/g, '').trim();
                     if (!val || !/^[\x20-\x7E]+$/.test(val)) {
-                        val = '2M' + this.hashCode(item.name || ('PROD-' + item.id)).toString().slice(0, 8);
+                        val = '200' + String(Math.abs(this.hashCode(item.name || ('P' + item.id)))).padStart(8, '0').slice(0, 8);
                     }
                     return val;
                 },
@@ -883,24 +885,43 @@
                     if (code) {
                         this.lastScannedCode = code;
                         this.scannerTestInput = '';
+                        // Play a pleasant scan beep
+                        try {
+                            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.frequency.value = 1800;
+                            gain.gain.value = 0.15;
+                            osc.start();
+                            setTimeout(() => { osc.stop(); ctx.close(); }, 80);
+                        } catch(e) {}
                     }
                 },
 
                 renderAllBarcodes() {
+                    if (typeof JsBarcode === 'undefined' || typeof QRCode === 'undefined') {
+                        setTimeout(() => this.renderAllBarcodes(), 150);
+                        return;
+                    }
+
                     this.$nextTick(() => {
                         this.itemsQueue.forEach(item => {
                             const barcodeVal = this.cleanBarcodeValue(item);
                             const count = parseInt(item.print_qty || 1);
                             
                             for (let c = 1; c <= count; c++) {
+                                const safeId = String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+                                
                                 // 1. If QR Code
                                 if (item.code_type === 'qr') {
-                                    const qrContainerId = `barcode-qr-${item.id}-${c}`;
+                                    const qrContainerId = `barcode-qr-${safeId}-${c}`;
                                     const qrEl = document.getElementById(qrContainerId);
-                                    if (qrEl && typeof QRCode !== 'undefined') {
+                                    if (qrEl) {
                                         qrEl.innerHTML = '';
                                         try {
-                                            const qrSize = this.isA4Preset() ? 52 : 36;
+                                            const qrSize = this.isA4Preset() ? 52 : 38;
                                             new QRCode(qrEl, {
                                                 text: barcodeVal,
                                                 width: qrSize,
@@ -910,14 +931,14 @@
                                                 correctLevel: QRCode.CorrectLevel.M
                                             });
 
-                                            // Convert canvas to <img> with base64 dataURL to ensure 100% crisp printing across iframe & all browsers
+                                            // Convert canvas to crisp <img> for printing
                                             setTimeout(() => {
                                                 const canvas = qrEl.querySelector('canvas');
                                                 if (canvas) {
                                                     const dataUrl = canvas.toDataURL('image/png');
                                                     qrEl.innerHTML = `<img src="${dataUrl}" class="qr-code-img" style="width:${qrSize}px; height:${qrSize}px; display:block; margin:auto; image-rendering:pixelated; -webkit-print-color-adjust:exact;" alt="QR" />`;
                                                 }
-                                            }, 25);
+                                            }, 30);
                                         } catch(err) {
                                             console.error('QR Render Error:', err);
                                         }
@@ -925,43 +946,39 @@
                                 }
                                 // 2. If Linear Barcode (Lines)
                                 else {
-                                    const svgId = `#barcode-svg-${item.id}-${c}`;
-                                    const svgEl = document.querySelector(svgId);
-                                    if (svgEl && typeof JsBarcode !== 'undefined') {
+                                    const svgElementId = `barcode-svg-${safeId}-${c}`;
+                                    const svgEl = document.getElementById(svgElementId);
+                                    if (svgEl) {
                                         try {
                                             const len = barcodeVal.length;
-                                            let barWidth = 1.35;
+                                            let barWidth = 1.3;
                                             let barHeight = 32;
-                                            let barMargin = 4;
+                                            let barMargin = 6;
 
                                             if (this.isA4Preset()) {
-                                                barWidth = len > 14 ? 1.3 : 1.5;
+                                                barWidth = len > 14 ? 1.25 : 1.45;
                                                 barHeight = 38;
                                                 barMargin = 6;
                                             } else if (this.labelPreset === 'label-38x25') {
-                                                barWidth = len > 14 ? 1.0 : (len > 10 ? 1.15 : 1.35);
+                                                // High-contrast, scannable Code128 dimensions for 38x25mm thermal label
+                                                barWidth = len > 14 ? 1.05 : (len > 10 ? 1.2 : 1.35);
                                                 barHeight = 30;
-                                                barMargin = 4;
+                                                barMargin = 5;
                                             } else if (this.labelPreset === 'label-50x25' || this.labelPreset === 'label-50x30') {
                                                 barWidth = len > 14 ? 1.3 : 1.5;
-                                                barHeight = 34;
+                                                barHeight = 36;
                                                 barMargin = 6;
                                             }
 
-                                            // Select format
-                                            let format = 'CODE128';
-                                            if (/^\d{13}$/.test(barcodeVal)) {
-                                                format = 'EAN13';
-                                            }
-
+                                            // CODE128 supports all alphanumeric characters with full barcode scanner compatibility
                                             JsBarcode(svgEl, barcodeVal, {
-                                                format: format,
+                                                format: 'CODE128',
                                                 width: barWidth,
                                                 height: barHeight,
                                                 displayValue: this.config.showBarcodeText,
                                                 fontSize: 9,
                                                 margin: barMargin,
-                                                font: 'Share Tech Mono',
+                                                font: 'Share Tech Mono, monospace',
                                                 textMargin: 1,
                                                 lineColor: '#000000',
                                                 background: '#ffffff',
@@ -970,24 +987,23 @@
 
                                             svgEl.setAttribute('shape-rendering', 'crispEdges');
                                         } catch(err) {
+                                            console.error('Barcode Render Error:', err);
                                             try {
-                                                const fallbackCode = '2M' + this.hashCode(barcodeVal).toString().slice(0, 8);
+                                                const fallbackCode = '200' + String(this.hashCode(barcodeVal)).padStart(8, '0').slice(0, 8);
                                                 JsBarcode(svgEl, fallbackCode, {
                                                     format: 'CODE128',
-                                                    width: 1.2,
+                                                    width: 1.25,
                                                     height: 28,
                                                     displayValue: this.config.showBarcodeText,
                                                     fontSize: 9,
-                                                    margin: 4,
-                                                    font: 'Share Tech Mono',
+                                                    margin: 5,
+                                                    font: 'Share Tech Mono, monospace',
                                                     lineColor: '#000000',
                                                     background: '#ffffff',
                                                     flat: true
                                                 });
                                                 svgEl.setAttribute('shape-rendering', 'crispEdges');
-                                            } catch(e) {
-                                                console.error('Barcode Render Error:', e);
-                                            }
+                                            } catch(e) {}
                                         }
                                     }
                                 }
@@ -998,6 +1014,18 @@
 
                 init() {
                     if (data.initialProduct) {
+                        this.addProductToQueue(data.initialProduct, (data.initialProduct.stock_quantity > 0 ? data.initialProduct.stock_quantity : 1));
+                        this.activeTab = 'system';
+                    } else {
+                        // Prepopulate with 1 sample item so preview and scanner are immediately visible and testable!
+                        this.customItem.name = 'صنف تجريبي (شاحن سريع)';
+                        this.customItem.price = 150;
+                        this.customItem.code = '20042817291';
+                        this.addCustomProductToQueue();
+                    }
+                    this.filteredProductsList = this.allProducts.slice(0, 10);
+                    this.$nextTick(() => this.renderAllBarcodes());
+                },
                         this.addProductToQueue(data.initialProduct, (data.initialProduct.stock_quantity > 0 ? data.initialProduct.stock_quantity : 1));
                         this.activeTab = 'system';
                     }
