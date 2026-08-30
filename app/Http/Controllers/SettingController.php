@@ -32,6 +32,8 @@ class SettingController extends Controller
             'theme_color' => 'required|in:dark,light',
             'auto_print_receipt' => 'required|in:0,1',
             'auto_checkout_on_barcode' => 'nullable|in:0,1',
+            'central_sync_url' => 'nullable|string|max:255',
+            'central_sync_key' => 'nullable|string|max:255',
             'store_logo' => 'nullable|image|max:2048', // max 2MB
             'default_product_image' => 'nullable|image|max:2048', // max 2MB
         ]);

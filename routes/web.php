@@ -142,9 +142,10 @@ Route::middleware(['auth', 'check.branch', 'audit.log'])->group(function () {
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
 
-    // AJAX API endpoints
+    // AJAX API endpoints & Offline Sync Trigger
     Route::get('/api/dashboard-stats', [DashboardController::class, 'stats'])->name('api.dashboard-stats');
     Route::get('/api/chart-data/{type}', [DashboardController::class, 'chartData'])->name('api.chart-data');
+    Route::post('/api/sync/trigger', [\App\Http\Controllers\Api\SyncController::class, 'triggerLocalPush'])->name('api.sync.trigger');
 });
 
 require __DIR__.'/auth.php';

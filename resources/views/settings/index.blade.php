@@ -216,6 +216,46 @@
                     </div>
                 </div>
 
+                <!-- Cloud Server & Online Database Sync Configuration Section -->
+                <div class="bg-[#0a0a0a] border border-teal-500/30 p-4 rounded-xl space-y-4">
+                    <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-teal-400 text-base"></i>
+                        <h3 class="text-xs font-bold text-white">إعدادات السيرفر السحابي والربط الأوفلاين (aaPanel Sync)</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Central Sync URL -->
+                        <div class="space-y-1">
+                            <label for="central_sync_url" class="block text-xs font-semibold text-gray-300">رابط السيرفر السحابي (aaPanel URL)</label>
+                            <input 
+                                type="url" 
+                                name="central_sync_url" 
+                                id="central_sync_url" 
+                                placeholder="https://your-domain.com"
+                                value="{{ old('central_sync_url', $settings['central_sync_url'] ?? '') }}"
+                                class="block w-full px-3 py-2 bg-[#050505] border border-white/10 rounded-lg text-teal-300 font-mono text-xs focus:outline-none focus:border-teal-400"
+                            >
+                            <span class="text-[10px] text-gray-500">رابط موقعك المستضاف على سيرفر aaPanel لاستقبال المزامنة.</span>
+                            <x-input-error :messages="$errors->get('central_sync_url')" class="text-xs text-rose-500 mt-1" />
+                        </div>
+
+                        <!-- Central Sync Key -->
+                        <div class="space-y-1">
+                            <label for="central_sync_key" class="block text-xs font-semibold text-gray-300">مفتاح مشفّر لتأمين التزامن (Sync Security Key)</label>
+                            <input 
+                                type="text" 
+                                name="central_sync_key" 
+                                id="central_sync_key" 
+                                placeholder="2M_Mobile_Secure_Sync_Key_2026"
+                                value="{{ old('central_sync_key', $settings['central_sync_key'] ?? '') }}"
+                                class="block w-full px-3 py-2 bg-[#050505] border border-white/10 rounded-lg text-amber-300 font-mono text-xs focus:outline-none focus:border-amber-400"
+                            >
+                            <span class="text-[10px] text-gray-500">رمز الأمان المشترك بين جهاز الكاشير المحلي والسيرفر السحابي.</span>
+                            <x-input-error :messages="$errors->get('central_sync_key')" class="text-xs text-rose-500 mt-1" />
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Address -->
                 <div class="space-y-1">
                     <label for="store_address" class="block text-xs font-semibold text-gray-300">العنوان الرئيسي للمؤسسة</label>

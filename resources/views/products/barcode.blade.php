@@ -823,38 +823,39 @@
                         <div 
                             class="barcode-label shadow-sm"
                             :class="labelPreset"
+                            style="background: #ffffff !important; color: #000000 !important;"
                         >
                             <!-- Store Name Header -->
                             <div 
                                 x-show="config.showStoreName" 
-                                class="text-[8px] font-black tracking-wider uppercase truncate w-full text-center" 
-                                style="line-height: 1.1;"
+                                class="text-[9px] font-black tracking-wider uppercase truncate w-full text-center" 
+                                style="line-height: 1.1; color: #000000 !important; background: transparent !important;"
                                 x-text="config.storeName"
                             ></div>
 
                             <!-- Product Name -->
                             <div 
                                 x-show="config.showProductName" 
-                                class="text-[8.5px] font-bold truncate w-full px-0.5 text-center" 
-                                style="line-height: 1.15;"
+                                class="text-[10px] font-bold truncate w-full px-0.5 text-center" 
+                                style="line-height: 1.15; color: #000000 !important; background: transparent !important;"
                                 x-text="item.name"
                             ></div>
 
                             <!-- Middle Section: QR Code OR Barcode Canvas -->
                             <template x-if="item.code_type === 'qr'">
-                                <div class="my-0.5 qr-container" :id="'barcode-qr-' + String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_') + '-' + copy"></div>
+                                <div class="my-0.5 qr-container" :id="'barcode-qr-' + String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_') + '-' + copy" style="background: transparent !important;"></div>
                             </template>
                             <template x-if="item.code_type !== 'qr'">
-                                <div class="my-0.5 flex justify-center items-center w-full overflow-hidden">
+                                <div class="my-0.5 flex justify-center items-center w-full overflow-hidden" style="background: transparent !important;">
                                     <canvas :id="'barcode-canvas-' + String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_') + '-' + copy" class="barcode-canvas max-w-full block mx-auto"></canvas>
                                 </div>
                             </template>
 
                             <!-- Bottom Row: Price & SKU / Expiry -->
-                            <div class="w-full flex items-center justify-between px-1 text-[8px] font-bold" style="line-height: 1;">
-                                <span x-show="config.showSku" class="font-mono opacity-80" x-text="item.sku || item.barcode || ''"></span>
-                                <span x-show="config.showExpiry" class="font-mono opacity-80" x-text="item.expiry || ''"></span>
-                                <span x-show="config.showPrice" class="font-mono font-black text-[9px] mr-auto" x-text="numberFormat(item.selling_price) + ' LE'"></span>
+                            <div class="w-full flex items-center justify-between px-1 text-[9px] font-bold" style="line-height: 1.1; color: #000000 !important; background: transparent !important;">
+                                <span x-show="config.showSku" class="font-mono text-[8.5px]" style="color: #000000 !important;" x-text="item.sku || item.barcode || ''"></span>
+                                <span x-show="config.showExpiry" class="font-mono text-[8.5px]" style="color: #000000 !important;" x-text="item.expiry || ''"></span>
+                                <span x-show="config.showPrice" class="font-mono font-black text-[10.5px] mr-auto text-left" style="color: #000000 !important;" x-text="numberFormat(item.selling_price) + ' LE'"></span>
                             </div>
                         </div>
                     </template>
@@ -1307,6 +1308,7 @@
                             canvas.width  = widthDots;
                             canvas.height = heightDots;
                             const ctx = canvas.getContext('2d');
+                            ctx.clearRect(0, 0, widthDots, heightDots);
                             ctx.fillStyle = '#ffffff';
                             ctx.fillRect(0, 0, widthDots, heightDots);
                             ctx.fillStyle = '#000000';
@@ -1683,17 +1685,24 @@
                                             box-sizing: border-box; 
                                             margin: 0; 
                                             padding: 0; 
+                                            background-color: transparent !important;
+                                            color: #000000 !important;
                                             -webkit-print-color-adjust: exact !important; 
                                             print-color-adjust: exact !important; 
                                             color-adjust: exact !important; 
                                         }
-                                        html, body { 
+                                        html, body, .print-container, .barcode-label { 
                                             font-family: 'Cairo', system-ui, sans-serif; 
                                             background: #ffffff !important; 
+                                            background-color: #ffffff !important;
                                             color: #000000 !important; 
                                             margin: 0 !important; 
-                                            padding: 0 !important; 
                                             overflow: hidden !important; 
+                                        }
+                                        .barcode-label div, .barcode-label span, .barcode-label p {
+                                            background: transparent !important;
+                                            background-color: transparent !important;
+                                            color: #000000 !important;
                                         }
                                         img.barcode-img, img.qr-code-img { 
                                             image-rendering: pixelated !important; 
@@ -1704,6 +1713,7 @@
                                         }
                                         .barcode-label { 
                                             background: #ffffff !important; 
+                                            background-color: #ffffff !important;
                                             color: #000000 !important; 
                                             display: flex; 
                                             flex-direction: column; 

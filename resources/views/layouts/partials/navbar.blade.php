@@ -85,6 +85,96 @@
                 <span class="hidden sm:inline">شاشة البيع POS</span>
             </a>
             @endcan
+
+            <!-- Offline / Cloud Sync Status Badge Component -->
+            <div 
+                x-data="offlineSyncWidget()" 
+                x-init="initWidget()"
+                class="relative flex items-center"
+            >
+                <button 
+                    type="button" 
+                    @click="triggerManualSync()" 
+                    :disabled="isSyncing"
+                    class="px-2.5 py-1 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                    :class="isOnline ? (isSyncing ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400') : 'bg-rose-500/10 border-rose-500/30 text-rose-400'"
+                    :title="isOnline ? 'انقر للمزامنة الفورية مع سيرفر aaPanel' : 'أوفلاين - المعاملات يتم حفظها محلياً وسيتم مزامنتها عند اتصال الإنترنت'"
+                >
+                    <span 
+                        class="w-2 h-2 rounded-full shrink-0"
+                        :class="isOnline ? (isSyncing ? 'bg-amber-400 animate-spin' : 'bg-emerald-500 animate-pulse') : 'bg-rose-500'"
+                    ></span>
+                    <span x-text="statusText"></span>
+                    <i class="fa-solid" :class="isSyncing ? 'fa-spinner fa-spin' : 'fa-rotate text-[10px] opacity-70 hover:opacity-100'"></i>
+                </button>
+            </div>
+
+            <script>
+            function offlineSyncWidget() {
+                return {
+                    isOnline: navigator.onLine,
+                    isSyncing: false,
+                    statusText: navigator.onLine ? 'أونلاين' : 'أوفلاين',
+                    
+                    initWidget() {
+                        window.addEventListener('online', () => {
+                            this.isOnline = true;
+                            this.statusText = 'أونلاين (تزامن)';
+                            this.triggerManualSync();
+                        });
+                        window.addEventListener('offline', () => {
+                            this.isOnline = false;
+                            this.statusText = 'أوفلاين (محلي)';
+                        });
+                        
+                        // Initial connectivity check
+                        this.checkCloudPing();
+                        // Periodic heartbeat every 60 seconds
+                        setInterval(() => this.checkCloudPing(), 60000);
+                    },
+
+                    checkCloudPing() {
+                        fetch('{{ route("api.sync.ping") }}', { signal: AbortSignal.timeout(3000) })
+                            .then(res => res.json())
+                            .then(data => {
+                                this.isOnline = (data.status === 'online');
+                                this.statusText = this.isOnline ? 'أونلاين' : 'أوفلاين (محلي)';
+                            })
+                            .catch(() => {
+                                this.isOnline = false;
+                                this.statusText = 'أوفلاين (محلي)';
+                            });
+                    },
+
+                    triggerManualSync() {
+                        if (this.isSyncing) return;
+                        this.isSyncing = true;
+                        this.statusText = 'جاري المزامنة...';
+
+                        fetch('{{ route("api.sync.trigger") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            }
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            this.isSyncing = false;
+                            if (data.success) {
+                                this.statusText = 'أونلاين (محدث)';
+                            } else {
+                                this.statusText = 'أوفلاين (محلي)';
+                            }
+                        })
+                        .catch(() => {
+                            this.isSyncing = false;
+                            this.statusText = 'أوفلاين (محلي)';
+                        });
+                    }
+                };
+            }
+            </script>
         </div>
     </div>
 
