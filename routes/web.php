@@ -82,11 +82,18 @@ Route::middleware(['auth', 'check.branch', 'audit.log'])->group(function () {
     Route::post('/inventory/restock', [InventoryController::class, 'restock'])->name('inventory.restock');
     Route::post('/inventory/transfer', [InventoryController::class, 'transfer'])->name('inventory.transfer');
 
-    // POS
+    // POS & Shifts
     Route::get('/pos', [POSController::class, 'index'])->name('pos.index');
     Route::post('/pos/sale', [POSController::class, 'processSale'])->name('pos.sale');
     Route::get('/pos/customer-search', [POSController::class, 'customerSearch'])->name('pos.customer-search');
     Route::get('/pos/product-search', [POSController::class, 'productSearch'])->name('pos.product-search');
+    
+    // Shift Management
+    Route::get('/pos/shift/status', [POSController::class, 'shiftStatus'])->name('pos.shift.status');
+    Route::post('/pos/shift/open', [POSController::class, 'openShift'])->name('pos.shift.open');
+    Route::post('/pos/shift/close', [POSController::class, 'closeShift'])->name('pos.shift.close');
+    Route::post('/pos/shift/handover', [POSController::class, 'handoverShift'])->name('pos.shift.handover');
+    Route::get('/pos/shift/{shift}/print', [POSController::class, 'printShiftSummary'])->name('pos.shift.print');
 
     // Sales
     Route::get('/sales', [SaleController::class, 'index'])->name('sales.index');

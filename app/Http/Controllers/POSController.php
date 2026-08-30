@@ -243,4 +243,243 @@ class POSController extends Controller
             return response()->json(['success' => false, 'message' => 'حدث خطأ أثناء إتمام العملية: ' . $e->getMessage()], 500);
         }
     }
+
+    /**
+     * Get real-time status of user active shift
+     */
+    public function shiftStatus(Request $request)
+    {
+        $user = Auth::user();
+        $branchId = $user->branch_id ?? 1;
+
+        $shift = CashShift::where('user_id', $user->id)
+            ->where('status', 'open')
+            ->first();
+
+        if (!$shift && $user->role !== 'cashier') {
+            $shift = CashShift::where('branch_id', $branchId)
+                ->where('status', 'open')
+                ->first();
+        }
+
+        $branchUsers = \App\Models\User::where('branch_id', $branchId)
+            ->where('id', '!=', $user->id)
+            ->where('is_active', true)
+            ->get(['id', 'name', 'role']);
+
+        if (!$shift) {
+            return response()->json([
+                'has_open_shift' => false,
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'role' => $user->role,
+                ],
+                'branch_users' => $branchUsers,
+            ]);
+        }
+
+        $salesQuery = Sale::where('cash_shift_id', $shift->id)->where('status', 'completed');
+        $salesCount = (clone $salesQuery)->count();
+        $cashSales = (clone $salesQuery)->where('payment_method', 'cash')->sum('total');
+        $cardSales = (clone $salesQuery)->whereIn('payment_method', ['card', 'wallet', 'split'])->sum('total');
+        $creditSales = (clone $salesQuery)->where('payment_method', 'credit')->sum('total');
+        $totalSales = (clone $salesQuery)->sum('total');
+
+        $expectedCash = floatval($shift->opening_balance) + floatval($cashSales);
+
+        return response()->json([
+            'has_open_shift' => true,
+            'shift' => [
+                'id' => $shift->id,
+                'user_name' => $shift->user->name ?? $user->name,
+                'branch_name' => $shift->branch->name ?? '',
+                'opening_time' => $shift->opening_time ? $shift->opening_time->format('Y-m-d h:i A') : '',
+                'opening_balance' => floatval($shift->opening_balance),
+                'cash_sales' => floatval($cashSales),
+                'card_sales' => floatval($cardSales),
+                'credit_sales' => floatval($creditSales),
+                'total_sales' => floatval($totalSales),
+                'sales_count' => $salesCount,
+                'expected_cash' => $expectedCash,
+                'notes' => $shift->notes,
+            ],
+            'branch_users' => $branchUsers,
+        ]);
+    }
+
+    /**
+     * Open new shift for user
+     */
+    public function openShift(Request $request)
+    {
+        $request->validate([
+            'opening_balance' => 'required|numeric|min:0',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $user = Auth::user();
+        $branchId = $user->branch_id ?? 1;
+
+        $existing = CashShift::where('user_id', $user->id)->where('status', 'open')->first();
+        if ($existing) {
+            return response()->json(['success' => false, 'message' => 'لديك وردية مفتوحة بالفعل.'], 422);
+        }
+
+        $shift = CashShift::create([
+            'user_id' => $user->id,
+            'branch_id' => $branchId,
+            'opening_time' => now(),
+            'opening_balance' => floatval($request->input('opening_balance', 0)),
+            'expected_balance' => floatval($request->input('opening_balance', 0)),
+            'status' => 'open',
+            'notes' => $request->input('notes'),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم فتح الوردية بنجاح.',
+            'shift_id' => $shift->id,
+        ]);
+    }
+
+    /**
+     * Close current shift
+     */
+    public function closeShift(Request $request)
+    {
+        $request->validate([
+            'actual_balance' => 'required|numeric|min:0',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $user = Auth::user();
+        $shift = CashShift::where('user_id', $user->id)->where('status', 'open')->first();
+
+        if (!$shift && $user->role !== 'cashier') {
+            $shift = CashShift::where('branch_id', $user->branch_id ?? 1)->where('status', 'open')->first();
+        }
+
+        if (!$shift) {
+            return response()->json(['success' => false, 'message' => 'لا توجد وردية مفتوحة لإغلاقها.'], 422);
+        }
+
+        $cashSales = Sale::where('cash_shift_id', $shift->id)
+            ->where('status', 'completed')
+            ->where('payment_method', 'cash')
+            ->sum('total');
+
+        $expectedCash = floatval($shift->opening_balance) + floatval($cashSales);
+        $actualCash = floatval($request->input('actual_balance'));
+        $difference = $actualCash - $expectedCash;
+
+        $shift->update([
+            'closing_time' => now(),
+            'expected_balance' => $expectedCash,
+            'actual_balance' => $actualCash,
+            'difference' => $difference,
+            'status' => 'closed',
+            'notes' => $request->input('notes') ? trim(($shift->notes ? $shift->notes . ' | ' : '') . 'إغلاق: ' . $request->input('notes')) : $shift->notes,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم قفل الوردية بنجاح.',
+            'shift_id' => $shift->id,
+            'summary' => [
+                'opening_balance' => floatval($shift->opening_balance),
+                'expected_balance' => $expectedCash,
+                'actual_balance' => $actualCash,
+                'difference' => $difference,
+                'difference_label' => $difference == 0 ? 'متطابق' : ($difference > 0 ? "زيادة (+$difference)" : "عجز ($difference)"),
+            ]
+        ]);
+    }
+
+    /**
+     * Hand over active shift to another user
+     */
+    public function handoverShift(Request $request)
+    {
+        $request->validate([
+            'target_user_id' => 'required|exists:users,id',
+            'actual_balance' => 'required|numeric|min:0',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $user = Auth::user();
+        $shift = CashShift::where('user_id', $user->id)->where('status', 'open')->first();
+
+        if (!$shift) {
+            return response()->json(['success' => false, 'message' => 'لا توجد وردية مفتوحة لتسليمها.'], 422);
+        }
+
+        $targetUser = \App\Models\User::findOrFail($request->input('target_user_id'));
+
+        $targetExisting = CashShift::where('user_id', $targetUser->id)->where('status', 'open')->first();
+        if ($targetExisting) {
+            return response()->json(['success' => false, 'message' => 'المستخدم المستلم لديه وردية مفتوحة بالفعل.'], 422);
+        }
+
+        $cashSales = Sale::where('cash_shift_id', $shift->id)
+            ->where('status', 'completed')
+            ->where('payment_method', 'cash')
+            ->sum('total');
+
+        $expectedCash = floatval($shift->opening_balance) + floatval($cashSales);
+        $actualCash = floatval($request->input('actual_balance'));
+        $difference = $actualCash - $expectedCash;
+
+        DB::beginTransaction();
+        try {
+            // 1. Close current shift
+            $shift->update([
+                'closing_time' => now(),
+                'expected_balance' => $expectedCash,
+                'actual_balance' => $actualCash,
+                'difference' => $difference,
+                'status' => 'closed',
+                'notes' => 'تسليم وردية إلى ' . $targetUser->name . ($request->input('notes') ? ' - ' . $request->input('notes') : ''),
+            ]);
+
+            // 2. Open new shift for target user
+            $newShift = CashShift::create([
+                'user_id' => $targetUser->id,
+                'branch_id' => $shift->branch_id,
+                'opening_time' => now(),
+                'opening_balance' => $actualCash,
+                'expected_balance' => $actualCash,
+                'status' => 'open',
+                'notes' => 'مستلمة من الوردية السابقة (' . $user->name . ')',
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تسليم الوردية بنجاح إلى: ' . $targetUser->name,
+                'old_shift_id' => $shift->id,
+                'new_shift_id' => $newShift->id,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'حدث خطأ أثناء تسليم الوردية: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Printable shift closure report
+     */
+    public function printShiftSummary(CashShift $shift)
+    {
+        $shift->load(['user', 'branch']);
+        $salesQuery = Sale::where('cash_shift_id', $shift->id)->where('status', 'completed');
+        $salesCount = (clone $salesQuery)->count();
+        $cashSales = (clone $salesQuery)->where('payment_method', 'cash')->sum('total');
+        $cardSales = (clone $salesQuery)->whereIn('payment_method', ['card', 'wallet', 'split'])->sum('total');
+        $creditSales = (clone $salesQuery)->where('payment_method', 'credit')->sum('total');
+        $totalSales = (clone $salesQuery)->sum('total');
+
+        return view('pos.shift_print', compact('shift', 'salesCount', 'cashSales', 'cardSales', 'creditSales', 'totalSales'));
+    }
 }

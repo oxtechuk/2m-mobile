@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\Branch;
 use App\Models\Inventory;
 use App\Models\InventoryMovement;
+use App\Models\ProductSerial;
 
 class ProductController extends Controller
 {
@@ -29,8 +30,8 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:200',
-            'sku' => 'required|string|max:50|unique:products,sku',
-            'barcode' => 'nullable|string|max:100|unique:products,barcode',
+            'barcode' => 'required|string|max:100|unique:products,barcode',
+            'sku' => 'nullable|string|max:50|unique:products,sku',
             'category_id' => 'required|exists:categories,id',
             'branch_id' => 'nullable|exists:branches,id',
             'opening_stock' => 'nullable|integer|min:0',
@@ -43,6 +44,10 @@ class ProductController extends Controller
             'has_serials' => 'nullable|boolean',
         ]);
 
+        if (empty($validated['sku'])) {
+            $validated['sku'] = $validated['barcode'] ?? ('SKU-' . time() . rand(100, 999));
+        }
+
         $validated['has_serials'] = $request->has('has_serials');
 
         $product = Product::create($validated);
@@ -50,6 +55,31 @@ class ProductController extends Controller
         // Record Initial / Opening Stock Quantity
         $branchId = $request->input('branch_id') ?: (auth()->user()->branch_id ?? 1);
         $quantity = (int) $request->input('opening_stock', 0);
+
+        // Save Serials (IMEIs) if has_serials is enabled
+        $validSerialCount = 0;
+        if ($product->has_serials && $request->has('serials')) {
+            $serials = (array) $request->input('serials');
+            foreach ($serials as $s) {
+                $s = trim($s);
+                if (!empty($s)) {
+                    ProductSerial::updateOrCreate(
+                        ['serial_number' => $s],
+                        [
+                            'product_id' => $product->id,
+                            'branch_id' => $branchId,
+                            'status' => 'in_stock',
+                        ]
+                    );
+                    $validSerialCount++;
+                }
+            }
+        }
+
+        // If valid serials were entered and exceed specified opening_stock, sync quantity
+        if ($validSerialCount > $quantity) {
+            $quantity = $validSerialCount;
+        }
 
         Inventory::updateOrCreate(
             ['product_id' => $product->id, 'branch_id' => $branchId],
@@ -77,14 +107,14 @@ class ProductController extends Controller
 
     public function show($id)
     {
-        $product = Product::with(['category', 'inventories.branch'])->findOrFail($id);
+        $product = Product::with(['category', 'inventories.branch', 'serials'])->findOrFail($id);
         return view('products.show', compact('product'));
     }
 
     public function edit($id)
     {
         $branchId = auth()->user()->branch_id ?? 1;
-        $product = Product::with(['inventories' => function ($q) use ($branchId) {
+        $product = Product::with(['serials', 'inventories' => function ($q) use ($branchId) {
             $q->where('branch_id', $branchId);
         }])->findOrFail($id);
         $categories = Category::all();
@@ -99,8 +129,8 @@ class ProductController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:200',
-            'sku' => 'required|string|max:50|unique:products,sku,' . $product->id,
-            'barcode' => 'nullable|string|max:100|unique:products,barcode,' . $product->id,
+            'barcode' => 'required|string|max:100|unique:products,barcode,' . $product->id,
+            'sku' => 'nullable|string|max:50|unique:products,sku,' . $product->id,
             'category_id' => 'required|exists:categories,id',
             'branch_id' => 'nullable|exists:branches,id',
             'current_stock' => 'nullable|integer|min:0',
@@ -113,9 +143,40 @@ class ProductController extends Controller
             'has_serials' => 'nullable|boolean',
         ]);
 
+        if (empty($validated['sku'])) {
+            $validated['sku'] = $validated['barcode'] ?? $product->sku;
+        }
+
         $validated['has_serials'] = $request->has('has_serials');
 
         $product->update($validated);
+
+        $branchId = $request->input('branch_id') ?: (auth()->user()->branch_id ?? 1);
+
+        // Delete marked serials
+        if ($request->has('remove_serials')) {
+            ProductSerial::whereIn('id', (array) $request->input('remove_serials'))
+                ->where('product_id', $product->id)
+                ->delete();
+        }
+
+        // Save new Serials (IMEIs) if has_serials is enabled
+        if ($product->has_serials && $request->has('serials')) {
+            $serials = (array) $request->input('serials');
+            foreach ($serials as $s) {
+                $s = trim($s);
+                if (!empty($s)) {
+                    ProductSerial::updateOrCreate(
+                        ['serial_number' => $s],
+                        [
+                            'product_id' => $product->id,
+                            'branch_id' => $branchId,
+                            'status' => 'in_stock',
+                        ]
+                    );
+                }
+            }
+        }
 
         // If stock is updated from edit page
         if ($request->has('current_stock')) {

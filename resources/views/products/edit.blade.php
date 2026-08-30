@@ -39,12 +39,12 @@
 
                 <!-- SKU -->
                 <div class="space-y-1">
-                    <label for="sku" class="block text-xs font-semibold text-gray-300">رمز المنتج (SKU) <span class="text-rose-500">*</span></label>
+                    <label for="sku" class="block text-xs font-semibold text-gray-300">رمز المنتج (SKU) <span class="text-xs text-gray-500 font-normal">(اختياري)</span></label>
                     <input 
                         type="text" 
                         name="sku" 
                         id="sku" 
-                        required 
+                        placeholder="اختياري: رمز المنتج الكودي"
                         value="{{ old('sku', $product->sku) }}"
                         class="block w-full px-3 py-2 bg-[#0a0a0a] border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#D41414] focus:ring-1 focus:ring-[#D41414] transition text-xs font-mono text-left"
                     >
@@ -53,11 +53,13 @@
 
                 <!-- Barcode -->
                 <div class="space-y-1">
-                    <label for="barcode" class="block text-xs font-semibold text-gray-300">رقم الباركود</label>
+                    <label for="barcode" class="block text-xs font-semibold text-gray-300">رقم الباركود <span class="text-rose-500">*</span></label>
                     <input 
                         type="text" 
                         name="barcode" 
                         id="barcode" 
+                        required
+                        placeholder="رقم الباركود الدولي أو التلقائي"
                         value="{{ old('barcode', $product->barcode) }}"
                         class="block w-full px-3 py-2 bg-[#0a0a0a] border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#D41414] focus:ring-1 focus:ring-[#D41414] transition text-xs font-mono text-left"
                     >
@@ -157,8 +159,8 @@
             </div>
 
             <!-- Current Stock Adjustment Section -->
-            <div class="p-4 bg-teal-950/20 border border-teal-500/30 rounded-xl space-y-3">
-                <div class="flex items-center gap-2 text-teal-400 font-bold text-xs">
+            <div class="p-4 bg-[#0f2e2e] border border-teal-500/40 rounded-xl space-y-3 shadow-inner">
+                <div class="flex items-center gap-2 text-teal-300 font-bold text-xs">
                     <i class="fa-solid fa-boxes-stacked"></i>
                     <span>تعديل رصيد المخزن الحالي (Current Stock):</span>
                 </div>
@@ -166,7 +168,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <!-- Current Stock Quantity -->
                     <div class="space-y-1">
-                        <label for="current_stock" class="block text-xs font-semibold text-gray-200">الكمية الحالية في المخزن</label>
+                        <label for="current_stock" class="block text-xs font-semibold text-teal-100">الكمية الحالية في المخزن</label>
                         <input 
                             type="number" 
                             name="current_stock" 
@@ -174,7 +176,7 @@
                             min="0"
                             step="1"
                             value="{{ old('current_stock', $currentStock) }}"
-                            class="block w-full px-3 py-2 bg-[#0a0a0a] border border-white/10 rounded-lg text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition text-xs font-mono font-bold text-left"
+                            class="block w-full px-3 py-2 bg-[#081a1a] border border-teal-500/30 rounded-lg text-white focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 transition text-xs font-mono font-bold text-left"
                         >
                         <x-input-error :messages="$errors->get('current_stock')" class="text-xs text-rose-500 mt-1" />
                     </div>
@@ -196,19 +198,108 @@
                 </div>
             </div>
 
-            <!-- Has Serials Toggle -->
-            <div class="flex items-center p-3 bg-[#0a0a0a] rounded-lg border border-white/5">
-                <input 
-                    type="checkbox" 
-                    name="has_serials" 
-                    id="has_serials" 
-                    value="1" 
-                    {{ old('has_serials', $product->has_serials) ? 'checked' : '' }}
-                    class="rounded bg-[#0a0a0a] border-white/10 text-[#D41414] focus:ring-[#D41414]"
-                >
-                <label for="has_serials" class="mr-2 text-xs font-semibold text-gray-300 select-none">
-                    يتطلب أرقام تسلسلية فريدة (IMEI / Serials) مثل الهواتف والتابلت
-                </label>
+            <!-- Has Serials Toggle & Dynamic Serials Input List -->
+            <div class="space-y-3 p-4 bg-[#0a0a0a] rounded-xl border border-white/10" x-data="{
+                hasSerials: {{ old('has_serials', $product->has_serials) ? 'true' : 'false' }},
+                newSerials: [''],
+                addNewSerial() {
+                    this.newSerials.push('');
+                },
+                removeNewSerial(idx) {
+                    if (this.newSerials.length > 1) {
+                        this.newSerials.splice(idx, 1);
+                    } else {
+                        this.newSerials[0] = '';
+                    }
+                }
+            }">
+                <div class="flex items-center">
+                    <input 
+                        type="checkbox" 
+                        name="has_serials" 
+                        id="has_serials" 
+                        value="1" 
+                        x-model="hasSerials"
+                        class="rounded bg-[#0a0a0a] border-white/10 text-[#D41414] focus:ring-[#D41414] w-4 h-4 cursor-pointer"
+                    >
+                    <label for="has_serials" class="mr-2.5 text-xs font-bold text-gray-200 select-none flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-barcode text-teal-400 text-sm"></i>
+                        <span>يتطلب أرقام تسلسلية فريدة (IMEI / Serials) مثل الهواتف والتابلت</span>
+                    </label>
+                </div>
+
+                <!-- Dynamic Serials Section -->
+                <div x-show="hasSerials" x-collapse class="pt-3 border-t border-white/10 space-y-4">
+                    
+                    <!-- Existing Serials in Stock -->
+                    @php
+                        $inStockSerials = $product->serials ? $product->serials->where('status', 'in_stock') : collect();
+                    @endphp
+                    @if($inStockSerials->count() > 0)
+                        <div class="space-y-2">
+                            <span class="text-xs font-bold text-gray-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-boxes-stacked text-teal-400"></i>
+                                <span>السيريالات المسجلة حالياً بالمخزن ({{ $inStockSerials->count() }} قطعة):</span>
+                            </span>
+
+                            <div class="flex flex-wrap gap-2">
+                                @foreach($inStockSerials as $s)
+                                    <label class="flex items-center gap-1.5 px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-mono text-gray-200 hover:border-rose-500/50 cursor-pointer" title="حدد لحذف السيريال">
+                                        <input type="checkbox" name="remove_serials[]" value="{{ $s->id }}" class="rounded bg-black border-white/20 text-rose-500 focus:ring-rose-500">
+                                        <span>{{ $s->serial_number }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                            <p class="text-[10px] text-gray-500">ضع علامة صح ❌ على السيريال في حالة رغبتك في حذفه من المخزن عند التحديث.</p>
+                        </div>
+                    @endif
+
+                    <!-- Add New Serials -->
+                    <div class="space-y-3 pt-2 border-t border-white/10">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-teal-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-plus text-xs"></i>
+                                <span>إضافة أرقام سيريال جديدة (IMEI):</span>
+                            </span>
+                            <button 
+                                type="button" 
+                                @click="addNewSerial()" 
+                                class="px-2.5 py-1 bg-teal-500/15 border border-teal-500/30 text-teal-300 hover:bg-teal-500/25 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+                            >
+                                <i class="fa-solid fa-plus text-[10px]"></i>
+                                <span>إضافة خانة سيريال</span>
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <template x-for="(s, index) in newSerials" :key="index">
+                                <div class="space-y-1">
+                                    <label class="block text-[11px] font-semibold text-gray-400">
+                                        سيريال جديد #<span x-text="index + 1"></span>
+                                    </label>
+                                    <div class="flex items-center gap-1">
+                                        <input 
+                                            type="text" 
+                                            name="serials[]" 
+                                            x-model="newSerials[index]"
+                                            placeholder="امسح بالباركود أو اكتب IMEI"
+                                            class="block w-full px-3 py-1.5 bg-black/40 border border-white/15 rounded-lg text-white font-mono text-xs text-left focus:outline-none focus:border-teal-400"
+                                        >
+                                        <button 
+                                            type="button" 
+                                            @click="removeNewSerial(index)" 
+                                            title="حذف"
+                                            class="px-2 py-1.5 text-gray-500 hover:text-rose-400 text-xs transition cursor-pointer"
+                                        >
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                </div>
             </div>
 
             <!-- Description -->

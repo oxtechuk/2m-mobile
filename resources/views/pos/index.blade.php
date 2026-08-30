@@ -64,6 +64,145 @@
                 showQuickCustomerModal: false,
                 isSavingCustomer: false,
                 isCheckingOut: false,
+                
+                // Shift State
+                shiftInfo: null,
+                showShiftModal: false,
+                shiftTab: 'summary',
+                isShiftLoading: false,
+                shiftForm: {
+                    opening_balance: 0,
+                    actual_balance: 0,
+                    target_user_id: '',
+                    notes: ''
+                },
+
+                async loadShiftStatus(autoModalIfClosed = false) {
+                    try {
+                        const res = await fetch("{{ route('pos.shift.status') }}");
+                        const data = await res.json();
+                        this.shiftInfo = data;
+                        if (!data.has_open_shift) {
+                            if (autoModalIfClosed) {
+                                this.shiftTab = 'open';
+                                this.shiftForm.opening_balance = 0;
+                                this.shiftForm.notes = '';
+                                this.showShiftModal = true;
+                            }
+                        } else {
+                            this.shiftForm.actual_balance = data.shift.expected_cash;
+                        }
+                    } catch(e) {
+                        console.error(e);
+                    }
+                },
+
+                openShiftModal(tab = 'summary') {
+                    this.shiftTab = tab;
+                    this.showShiftModal = true;
+                    this.loadShiftStatus();
+                },
+
+                async submitOpenShift() {
+                    this.isShiftLoading = true;
+                    try {
+                        const res = await fetch("{{ route('pos.shift.open') }}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify({
+                                opening_balance: this.shiftForm.opening_balance,
+                                notes: this.shiftForm.notes
+                            })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            alert('✅ ' + data.message);
+                            this.showShiftModal = false;
+                            this.loadShiftStatus();
+                        } else {
+                            alert(data.message || 'فشل فتح الوردية.');
+                        }
+                    } catch(e) {
+                        alert('حدث خطأ: ' + e.message);
+                    } finally {
+                        this.isShiftLoading = false;
+                    }
+                },
+
+                async submitCloseShift() {
+                    if (!confirm('هل أنت متأكد من رغبتك في إغلاق وقفل هذه الوردية؟')) return;
+                    this.isShiftLoading = true;
+                    try {
+                        const res = await fetch("{{ route('pos.shift.close') }}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify({
+                                actual_balance: this.shiftForm.actual_balance,
+                                notes: this.shiftForm.notes
+                            })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            alert('✅ ' + data.message + '\nالفروقات: ' + data.summary.difference_label);
+                            if (data.shift_id) {
+                                window.open('/pos/shift/' + data.shift_id + '/print', '_blank');
+                            }
+                            this.showShiftModal = false;
+                            this.loadShiftStatus();
+                        } else {
+                            alert(data.message || 'فشل قفل الوردية.');
+                        }
+                    } catch(e) {
+                        alert('حدث خطأ: ' + e.message);
+                    } finally {
+                        this.isShiftLoading = false;
+                    }
+                },
+
+                async submitHandoverShift() {
+                    if (!this.shiftForm.target_user_id) {
+                        alert('يرجى اختيار المستخدم المستلم للوردية.');
+                        return;
+                    }
+                    if (!confirm('هل أنت متأكد من تسليم الوردية للمستخدم المختار؟')) return;
+                    this.isShiftLoading = true;
+                    try {
+                        const res = await fetch("{{ route('pos.shift.handover') }}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify({
+                                target_user_id: this.shiftForm.target_user_id,
+                                actual_balance: this.shiftForm.actual_balance,
+                                notes: this.shiftForm.notes
+                            })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            alert('✅ ' + data.message);
+                            if (data.old_shift_id) {
+                                window.open('/pos/shift/' + data.old_shift_id + '/print', '_blank');
+                            }
+                            this.showShiftModal = false;
+                            this.loadShiftStatus();
+                        } else {
+                            alert(data.message || 'فشل تسليم الوردية.');
+                        }
+                    } catch(e) {
+                        alert('حدث خطأ: ' + e.message);
+                    } finally {
+                        this.isShiftLoading = false;
+                    }
+                },
+
                 newCustomer: {
                     name: '',
                     phone: '',
@@ -111,6 +250,7 @@
                 },
                 init() {
                     this.focusSearch();
+                    this.loadShiftStatus(true);
                     window.addEventListener('keydown', (e) => {
                         if (e.key === 'F8') {
                             e.preventDefault();
@@ -269,11 +409,29 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-3 text-xs">
+            <div class="flex items-center gap-2.5 text-xs">
+                <!-- Shift Control Button -->
+                <button 
+                    @click="openShiftModal('summary')" 
+                    class="px-3 py-1.5 rounded-xl border text-xs font-bold transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+                    :class="shiftInfo && shiftInfo.has_open_shift ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20'"
+                >
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <template x-if="shiftInfo && shiftInfo.has_open_shift">
+                        <span class="flex items-center gap-1.5">
+                            <span>الوردية: <strong x-text="shiftInfo.shift.user_name"></strong></span>
+                            <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-mono text-[10px]" x-text="numberFormat(shiftInfo.shift.expected_cash) + ' ' + defaultCurrency"></span>
+                        </span>
+                    </template>
+                    <template x-if="!shiftInfo || !shiftInfo.has_open_shift">
+                        <span>⚠️ الوردية مغلقة (اضغط لفتح وردية)</span>
+                    </template>
+                </button>
+
                 <!-- Status Badge -->
-                <span class="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">
+                <span class="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>الماسح الضوئي نشط (F8 للإنهاء)</span>
+                    <span>الماسح نشط</span>
                 </span>
 
                 <!-- Mobile View Switcher Tabs -->
@@ -617,6 +775,303 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Shift Management Modal (فتح / ملخص / تسليم / قفل وردية) -->
+    <div 
+        x-show="showShiftModal" 
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 scale-95"
+        x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 scale-100"
+        x-transition:leave-end="opacity-0 scale-95"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+        style="display: none;"
+    >
+        <div 
+            @click.away="if(shiftInfo && shiftInfo.has_open_shift) showShiftModal = false" 
+            class="bg-[#121212] border border-white/15 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-5 text-right relative overflow-hidden"
+        >
+            <!-- Background Accent Glow -->
+            <div class="absolute -top-24 -right-24 w-48 h-48 bg-[#D41414]/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-[#D41414]/15 border border-[#D41414]/30 flex items-center justify-center text-[#D41414] text-lg font-bold">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white">إدارة ورديات الخزينة (Cash Shift)</h3>
+                        <p class="text-[11px] text-gray-400">فتح، تسليم، وقفل الوردية لكل كاشير ومستخدم</p>
+                    </div>
+                </div>
+                <template x-if="shiftInfo && shiftInfo.has_open_shift">
+                    <button @click="showShiftModal = false" class="text-gray-400 hover:text-white text-base p-1 transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </template>
+            </div>
+
+            <!-- Navigation Tabs (Only if open shift exists) -->
+            <template x-if="shiftInfo && shiftInfo.has_open_shift">
+                <div class="flex border-b border-white/10 gap-1 pb-1">
+                    <button 
+                        @click="shiftTab = 'summary'" 
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition"
+                        :class="shiftTab === 'summary' ? 'bg-[#D41414] text-white shadow' : 'text-gray-400 hover:text-white hover:bg-white/5'"
+                    >
+                        📊 ملخص الوردية
+                    </button>
+                    <button 
+                        @click="shiftTab = 'handover'" 
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition"
+                        :class="shiftTab === 'handover' ? 'bg-amber-600 text-white shadow' : 'text-gray-400 hover:text-white hover:bg-white/5'"
+                    >
+                        🔄 تسليم لزميل
+                    </button>
+                    <button 
+                        @click="shiftTab = 'close'" 
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition"
+                        :class="shiftTab === 'close' ? 'bg-rose-600 text-white shadow' : 'text-gray-400 hover:text-white hover:bg-white/5'"
+                    >
+                        🔒 قفل الوردية
+                    </button>
+                </div>
+            </template>
+
+            <!-- TAB 1: Open Shift Form (If shift is closed or opening new) -->
+            <div x-show="!shiftInfo || !shiftInfo.has_open_shift || shiftTab === 'open'" class="space-y-4">
+                <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-300 text-xs flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                    <span>لا توجد وردية مفتوحة باسمك حالياً. يرجى إدخال الرصيد المبدئي بفيش الخزينة لبدء العمل.</span>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-gray-300">المبلغ المبدئي بالدرج (الرصيد الافتتاحي) <span class="text-rose-500">*</span></label>
+                    <div class="relative">
+                        <input 
+                            type="number" 
+                            step="0.01" 
+                            min="0"
+                            x-model.number="shiftForm.opening_balance" 
+                            placeholder="0.00"
+                            class="w-full px-3 py-2.5 bg-black/40 border border-white/15 rounded-xl text-white font-mono font-bold text-sm text-left focus:outline-none focus:border-[#D41414]"
+                        >
+                        <span class="absolute left-3 top-2.5 text-xs text-gray-500 font-mono">{{ setting('default_currency', 'ج.م') }}</span>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-gray-400">ملاحظات الفتح (اختياري)</label>
+                    <input 
+                        type="text" 
+                        x-model="shiftForm.notes"
+                        placeholder="مثال: استلام الخزينة بـ 500 جنيه فكة" 
+                        class="w-full px-3 py-2 bg-black/30 border border-white/15 rounded-xl text-white text-xs focus:outline-none focus:border-[#D41414]"
+                    >
+                </div>
+
+                <div class="pt-2">
+                    <button 
+                        @click="submitOpenShift()" 
+                        :disabled="isShiftLoading"
+                        class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-lg flex items-center justify-center gap-2"
+                    >
+                        <i class="fa-solid fa-play" x-show="!isShiftLoading"></i>
+                        <i class="fa-solid fa-spinner fa-spin" x-show="isShiftLoading"></i>
+                        <span>تأكيد وفتح الوردية لبدء البيع</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 2: Shift Summary -->
+            <div x-show="shiftInfo && shiftInfo.has_open_shift && shiftTab === 'summary'" class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="p-3 bg-white/5 border border-white/10 rounded-2xl">
+                        <p class="text-[10px] text-gray-400">الكاشير المسئول</p>
+                        <p class="text-xs font-bold text-white mt-0.5" x-text="shiftInfo ? shiftInfo.shift.user_name : ''"></p>
+                    </div>
+                    <div class="p-3 bg-white/5 border border-white/10 rounded-2xl">
+                        <p class="text-[10px] text-gray-400">تاريخ ووقت الفتح</p>
+                        <p class="text-xs font-mono font-semibold text-gray-300 mt-0.5" x-text="shiftInfo ? shiftInfo.shift.opening_time : ''"></p>
+                    </div>
+                </div>
+
+                <!-- Financial Stats Table -->
+                <div class="bg-black/30 border border-white/10 rounded-2xl p-4 space-y-2.5 text-xs">
+                    <div class="flex justify-between text-gray-400">
+                        <span>المبلغ الافتتاحي بالخزينة:</span>
+                        <span class="font-mono text-white font-bold" x-text="numberFormat(shiftInfo ? shiftInfo.shift.opening_balance : 0) + ' ' + defaultCurrency"></span>
+                    </div>
+                    <div class="flex justify-between text-gray-400">
+                        <span>مبيعات نقدي (كاش):</span>
+                        <span class="font-mono text-emerald-400 font-bold" x-text="'+ ' + numberFormat(shiftInfo ? shiftInfo.shift.cash_sales : 0) + ' ' + defaultCurrency"></span>
+                    </div>
+                    <div class="flex justify-between text-gray-400">
+                        <span>مبيعات شبكة / محفظة:</span>
+                        <span class="font-mono text-blue-400 font-bold" x-text="'+ ' + numberFormat(shiftInfo ? shiftInfo.shift.card_sales : 0) + ' ' + defaultCurrency"></span>
+                    </div>
+                    <div class="flex justify-between text-gray-400">
+                        <span>مبيعات آجـل:</span>
+                        <span class="font-mono text-purple-400 font-bold" x-text="'+ ' + numberFormat(shiftInfo ? shiftInfo.shift.credit_sales : 0) + ' ' + defaultCurrency"></span>
+                    </div>
+                    <div class="flex justify-between text-gray-300 pt-2 border-t border-white/10 font-bold">
+                        <span>إجمالي المبيعات (<span x-text="shiftInfo ? shiftInfo.shift.sales_count : 0"></span> فاتورة):</span>
+                        <span class="font-mono text-white" x-text="numberFormat(shiftInfo ? shiftInfo.shift.total_sales : 0) + ' ' + defaultCurrency"></span>
+                    </div>
+                    <div class="flex justify-between text-emerald-300 pt-2 border-t border-emerald-500/20 font-black text-sm bg-emerald-500/10 -mx-4 -mb-4 p-3 rounded-b-2xl">
+                        <span>المبلغ الفعلي المتوقع بالدرج:</span>
+                        <span class="font-mono" x-text="numberFormat(shiftInfo ? shiftInfo.shift.expected_cash : 0) + ' ' + defaultCurrency"></span>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button 
+                        @click="if(shiftInfo) window.open('/pos/shift/' + shiftInfo.shift.id + '/print', '_blank')" 
+                        class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5"
+                    >
+                        <i class="fa-solid fa-print"></i>
+                        <span>طباعة التقرير</span>
+                    </button>
+                    <button 
+                        @click="shiftTab = 'handover'" 
+                        class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5"
+                    >
+                        <i class="fa-solid fa-handshake"></i>
+                        <span>تسليم لزميل</span>
+                    </button>
+                    <button 
+                        @click="shiftTab = 'close'" 
+                        class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5"
+                    >
+                        <i class="fa-solid fa-lock"></i>
+                        <span>إغلاق الوردية</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 3: Handover Shift -->
+            <div x-show="shiftInfo && shiftInfo.has_open_shift && shiftTab === 'handover'" class="space-y-4">
+                <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-300 text-xs">
+                    تسليم الوردية سينهي ورديتك الحالية، ويقوم تلقائياً بفتح وردية جديدة للمستخدم المستلم بنفس المبلغ الفعلي المحسوب في الخزينة.
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-gray-300">المستخدم / الكاشير المستلم <span class="text-rose-500">*</span></label>
+                    <select 
+                        x-model="shiftForm.target_user_id" 
+                        class="w-full px-3 py-2.5 bg-black/40 border border-white/15 rounded-xl text-white text-xs focus:outline-none focus:border-amber-500"
+                    >
+                        <option value="">-- اختر الكاشير المستلم --</option>
+                        <template x-for="u in (shiftInfo ? shiftInfo.branch_users : [])" :key="u.id">
+                            <option :value="u.id" x-text="u.name + ' (' + u.role + ')'"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-gray-300">المبلغ الفعلي الموجود في الدرج وقت التسليم <span class="text-rose-500">*</span></label>
+                    <input 
+                        type="number" 
+                        step="0.01" 
+                        min="0"
+                        x-model.number="shiftForm.actual_balance" 
+                        class="w-full px-3 py-2.5 bg-black/40 border border-white/15 rounded-xl text-white font-mono font-bold text-sm text-left focus:outline-none focus:border-amber-500"
+                    >
+                    <div class="flex justify-between text-[11px] font-semibold pt-1">
+                        <span class="text-gray-400">المبلغ المتوقع: <strong class="text-white font-mono" x-text="numberFormat(shiftInfo ? shiftInfo.shift.expected_cash : 0)"></strong></span>
+                        <span 
+                            :class="shiftInfo && (shiftForm.actual_balance - shiftInfo.shift.expected_cash) === 0 ? 'text-emerald-400' : (shiftInfo && (shiftForm.actual_balance - shiftInfo.shift.expected_cash) > 0 ? 'text-blue-400' : 'text-rose-400')"
+                            x-text="shiftInfo && (shiftForm.actual_balance - shiftInfo.shift.expected_cash) === 0 ? 'متطابق' : (shiftInfo && (shiftForm.actual_balance - shiftInfo.shift.expected_cash) > 0 ? 'زيادة (+' + numberFormat(shiftForm.actual_balance - shiftInfo.shift.expected_cash) + ')' : 'عجز (' + numberFormat(shiftForm.actual_balance - (shiftInfo ? shiftInfo.shift.expected_cash : 0)) + ')')"
+                        ></span>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-gray-400">ملاحظات التسليم (اختياري)</label>
+                    <input 
+                        type="text" 
+                        x-model="shiftForm.notes"
+                        placeholder="مثال: تم تسليم النقدية كاملة بحضور المشرف" 
+                        class="w-full px-3 py-2 bg-black/30 border border-white/15 rounded-xl text-white text-xs focus:outline-none focus:border-amber-500"
+                    >
+                </div>
+
+                <div class="pt-2 flex justify-end gap-2">
+                    <button 
+                        @click="shiftTab = 'summary'" 
+                        class="px-4 py-2 bg-white/5 text-gray-300 text-xs font-bold rounded-xl transition"
+                    >
+                        إلغاء
+                    </button>
+                    <button 
+                        @click="submitHandoverShift()" 
+                        :disabled="isShiftLoading"
+                        class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition shadow-lg flex items-center gap-1.5"
+                    >
+                        <i class="fa-solid fa-handshake" x-show="!isShiftLoading"></i>
+                        <i class="fa-solid fa-spinner fa-spin" x-show="isShiftLoading"></i>
+                        <span>تأكيد وتسليم الوردية</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 4: Close Shift -->
+            <div x-show="shiftInfo && shiftInfo.has_open_shift && shiftTab === 'close'" class="space-y-4">
+                <div class="p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-300 text-xs">
+                    تنبيه: قفل الوردية سيغلق الخزينة ويرحل المبيعات والفروقات إلى التقارير.
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-gray-300">المبلغ الفعلي الموجود في الدرج <span class="text-rose-500">*</span></label>
+                    <input 
+                        type="number" 
+                        step="0.01" 
+                        min="0"
+                        x-model.number="shiftForm.actual_balance" 
+                        class="w-full px-3 py-2.5 bg-black/40 border border-white/15 rounded-xl text-white font-mono font-bold text-sm text-left focus:outline-none focus:border-rose-500"
+                    >
+                    <div class="flex justify-between text-[11px] font-semibold pt-1">
+                        <span class="text-gray-400">المبلغ المتوقع: <strong class="text-white font-mono" x-text="numberFormat(shiftInfo ? shiftInfo.shift.expected_cash : 0)"></strong></span>
+                        <span 
+                            :class="shiftInfo && (shiftForm.actual_balance - shiftInfo.shift.expected_cash) === 0 ? 'text-emerald-400' : (shiftInfo && (shiftForm.actual_balance - shiftInfo.shift.expected_cash) > 0 ? 'text-blue-400' : 'text-rose-400')"
+                            x-text="shiftInfo && (shiftForm.actual_balance - shiftInfo.shift.expected_cash) === 0 ? 'متطابق' : (shiftInfo && (shiftForm.actual_balance - shiftInfo.shift.expected_cash) > 0 ? 'زيادة (+' + numberFormat(shiftForm.actual_balance - shiftInfo.shift.expected_cash) + ')' : 'عجز (' + numberFormat(shiftForm.actual_balance - (shiftInfo ? shiftInfo.shift.expected_cash : 0)) + ')')"
+                        ></span>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-gray-400">ملاحظات الإغلاق (اختياري)</label>
+                    <input 
+                        type="text" 
+                        x-model="shiftForm.notes"
+                        placeholder="مثال: تم إغلاق الوردية وتوريد النقدية للدارة" 
+                        class="w-full px-3 py-2 bg-black/30 border border-white/15 rounded-xl text-white text-xs focus:outline-none focus:border-rose-500"
+                    >
+                </div>
+
+                <div class="pt-2 flex justify-end gap-2">
+                    <button 
+                        @click="shiftTab = 'summary'" 
+                        class="px-4 py-2 bg-white/5 text-gray-300 text-xs font-bold rounded-xl transition"
+                    >
+                        إلغاء
+                    </button>
+                    <button 
+                        @click="submitCloseShift()" 
+                        :disabled="isShiftLoading"
+                        class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition shadow-lg flex items-center gap-1.5"
+                    >
+                        <i class="fa-solid fa-lock" x-show="!isShiftLoading"></i>
+                        <i class="fa-solid fa-spinner fa-spin" x-show="isShiftLoading"></i>
+                        <span>قفل وإغلاق الوردية</span>
+                    </button>
+                </div>
+            </div>
+
         </div>
     </div>
 </x-app-layout>

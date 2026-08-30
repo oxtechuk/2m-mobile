@@ -64,21 +64,19 @@
             @endif
             
             <!-- Cashier Shift Status Indicator -->
-            @if(auth()->user()->role === 'cashier')
-                @php
-                    $openShift = \App\Models\CashShift::where('user_id', auth()->id())->where('status', 'open')->first();
-                @endphp
-                @if($openShift)
-                    <span class="px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1.5 animate-pulse"></span>
-                        الوردية مفتوحة
-                    </span>
-                @else
-                    <span class="px-2.5 py-1 rounded bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center">
-                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500 ml-1.5"></span>
-                        الوردية مغلقة
-                    </span>
-                @endif
+            @php
+                $openShift = \App\Models\CashShift::where('user_id', auth()->id())->where('status', 'open')->first();
+            @endphp
+            @if($openShift)
+                <a href="{{ route('pos.index') }}" title="إدارة وقفل الوردية" class="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition flex items-center text-xs font-semibold">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1.5 animate-pulse"></span>
+                    <span>الوردية مفتوحة</span>
+                </a>
+            @else
+                <a href="{{ route('pos.index') }}" title="فتح وردية جديدة للبيع" class="px-2.5 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition flex items-center text-xs font-semibold">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500 ml-1.5"></span>
+                    <span>الوردية مغلقة (فتح)</span>
+                </a>
             @endif
             
             @can('create-sale')
