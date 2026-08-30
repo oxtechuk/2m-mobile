@@ -1047,7 +1047,7 @@
                     });
                 },
 
-                directHardwarePrint() {
+                async directHardwarePrint() {
                     // Auto queue custom item if name was entered
                     if (this.totalLabelsCount() === 0 && this.customItem.name.trim()) {
                         this.addCustomProductToQueue();
@@ -1060,23 +1060,25 @@
 
                     this.directPrinting = true;
 
-                    fetch(data.directPrintUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': data.csrfToken,
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            items: this.itemsQueue,
-                            config: this.config,
-                            printer_name: this.selectedPrinter || ''
-                        })
-                    })
-                    .then(res => res.json())
-                    .then(resData => {
-                        this.directPrinting = false;
-                        if (resData.success) {
+                    // Try backend direct print first (works for local/network setups)
+                    try {
+                        const res = await fetch(data.directPrintUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': data.csrfToken,
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                items: this.itemsQueue,
+                                config: this.config,
+                                printer_name: this.selectedPrinter || ''
+                            })
+                        });
+
+                        const resData = await res.json();
+                        if (resData && resData.success) {
+                            this.directPrinting = false;
                             this.printerStatus = {
                                 tested: true,
                                 success: true,
@@ -1084,14 +1086,16 @@
                                 port: resData.port || 'USB003',
                                 message: '✅ ' + resData.message
                             };
-                        } else {
-                            alert(resData.message || 'حدث خطأ أثناء إرسال أمر الطباعة المباشر');
+                            return;
                         }
-                    })
-                    .catch(err => {
-                        this.directPrinting = false;
-                        alert('حدث خطأ في الاتصال بالسيرفر لإرسال أمر الطباعة المباشر.');
-                    });
+                    } catch (e) {
+                        console.warn('Backend direct print not accessible on cloud server, falling back to client printing...', e);
+                    }
+
+                    // On live remote server (e.g. 2m.oxtech.uk):
+                    // Automatically open the isolated browser print dialog directly connected to local Xprinter!
+                    this.directPrinting = false;
+                    this.printLabels();
                 },
 
                 setPreset(presetName) {
