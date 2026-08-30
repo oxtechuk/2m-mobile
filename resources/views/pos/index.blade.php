@@ -1,7 +1,7 @@
 <x-app-layout>
     @php
         $categories = \App\Models\Category::withCount('products')->get();
-        $products = \App\Models\Product::with('category')->where('is_active', true)->get();
+        $products = \App\Models\Product::with(['category', 'serials' => function($q) { $q->where('status', 'in_stock'); }])->where('is_active', true)->get();
         $customers = \App\Models\Customer::all();
         $currentBranch = auth()->user()->branch->name ?? 'الفرع الرئيسي';
     @endphp
@@ -276,19 +276,39 @@
                         const matchesSearch = !query || 
                             (prod.name && prod.name.toLowerCase().includes(query)) ||
                             (prod.barcode && prod.barcode.toLowerCase().includes(query)) ||
-                            (prod.sku && prod.sku.toLowerCase().includes(query));
+                            (prod.sku && prod.sku.toLowerCase().includes(query)) ||
+                            (prod.serials && prod.serials.some(s => s.serial_number && s.serial_number.toLowerCase().includes(query)));
                         return matchesCategory && matchesSearch;
                     });
                 },
                 addToCart(prod) {
                     if (!prod) return;
+                    const query = this.searchQuery.toLowerCase().trim();
+                    const availableSerials = prod.serials ? prod.serials.filter(s => s.status === 'in_stock') : [];
+                    
+                    // Check if query matched a specific serial (IMEI)
+                    let matchedSerial = null;
+                    if (availableSerials.length > 0 && query) {
+                        const foundS = availableSerials.find(s => s.serial_number && s.serial_number.toLowerCase() === query);
+                        if (foundS) matchedSerial = foundS.serial_number;
+                    }
+
                     let found = this.cart.find(item => item.id === prod.id);
                     if (found) {
                         found.qty++;
+                        if (matchedSerial && (!found.serials || !found.serials.includes(matchedSerial))) {
+                            if (!found.serials) found.serials = [];
+                            found.serials.push(matchedSerial);
+                        }
                     } else {
+                        const defaultSerial = matchedSerial || (availableSerials.length > 0 ? availableSerials[0].serial_number : '');
                         this.cart.push({
                             id: prod.id,
                             name: prod.name,
+                            has_serials: !!prod.has_serials,
+                            available_serials: availableSerials,
+                            selected_serial: defaultSerial,
+                            serials: matchedSerial ? [matchedSerial] : (defaultSerial ? [defaultSerial] : []),
                             selling_price: parseFloat(prod.selling_price),
                             qty: 1
                         });
@@ -353,6 +373,14 @@
                     const shouldPrint = (overridePrint !== null) ? overridePrint : this.printReceiptOnCheckout;
                     this.isCheckingOut = true;
 
+                    // Format cart payload with serials
+                    const payloadCart = this.cart.map(item => ({
+                        id: item.id,
+                        qty: item.qty,
+                        selling_price: item.selling_price,
+                        serials: item.selected_serial ? [item.selected_serial] : (item.serials || [])
+                    }));
+
                     try {
                         const response = await fetch("{{ route('pos.sale') }}", {
                             method: 'POST',
@@ -362,7 +390,7 @@
                             },
                             body: JSON.stringify({
                                 customer_id: this.selectedCustomer || null,
-                                cart: this.cart,
+                                cart: payloadCart,
                                 payment_method: 'cash',
                                 discount: 0
                             })
@@ -620,6 +648,23 @@
                             <div class="min-w-0 flex-1">
                                 <h4 class="text-xs font-bold text-gray-900 dark:text-white truncate" x-text="item.name"></h4>
                                 <p class="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-bold mt-0.5" x-text="numberFormat(item.selling_price) + ' ' + window.defaultCurrency"></p>
+                                
+                                <!-- Serial / IMEI Selector for devices -->
+                                <template x-if="item.has_serials && item.available_serials && item.available_serials.length > 0">
+                                    <div class="mt-1">
+                                        <select 
+                                            x-model="item.selected_serial" 
+                                            class="bg-black/30 border border-teal-500/40 text-teal-300 text-[10px] rounded px-1.5 py-0.5 font-mono focus:outline-none max-w-[170px] truncate"
+                                        >
+                                            <template x-for="s in item.available_serials" :key="s.id">
+                                                <option :value="s.serial_number" x-text="'IMEI: ' + s.serial_number" :selected="s.serial_number == item.selected_serial"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                </template>
+                                <template x-if="item.has_serials && (!item.available_serials || item.available_serials.length === 0)">
+                                    <p class="text-[9px] text-amber-400 font-semibold mt-0.5">⚠️ تخصيص سيريال تلقائي عند البيع</p>
+                                </template>
                             </div>
                             <div class="flex items-center space-x-1.5 space-x-reverse shrink-0">
                                 <!-- Quantity Buttons -->

@@ -49,11 +49,11 @@ class POSController extends Controller
                     ->orWhere('barcode', 'like', "%{$search}%")
                     ->orWhereHas('serials', function ($q) use ($search) {
                         $q->where('serial_number', 'like', "%{$search}%")
-                          ->where('status', 'available');
+                          ->where('status', 'in_stock');
                     });
             })
             ->with(['category', 'serials' => function ($q) {
-                $q->where('status', 'available');
+                $q->where('status', 'in_stock');
             }, 'inventories' => function ($q) use ($branchId) {
                 $q->where('branch_id', $branchId);
             }])
@@ -188,13 +188,39 @@ class POSController extends Controller
                 }
 
                 // If device requires serials (IMEIs)
-                if ($product->has_serials && !empty($data['serials'])) {
-                    foreach ($data['serials'] as $serialNum) {
-                        $pSerial = ProductSerial::where('product_id', $product->id)
-                            ->where('serial_number', $serialNum)
-                            ->first();
+                if ($product->has_serials) {
+                    $allocatedSerials = [];
 
-                        if ($pSerial) {
+                    // 1. Mark explicitly scanned/selected serials as sold
+                    if (!empty($data['serials'])) {
+                        foreach ($data['serials'] as $serialNum) {
+                            if (empty($serialNum)) continue;
+                            $pSerial = ProductSerial::where('product_id', $product->id)
+                                ->where('serial_number', $serialNum)
+                                ->where('status', 'in_stock')
+                                ->first();
+
+                            if ($pSerial) {
+                                $pSerial->update([
+                                    'status' => 'sold',
+                                    'sale_item_id' => $saleItem->id,
+                                ]);
+                                $allocatedSerials[] = $pSerial->id;
+                            }
+                        }
+                    }
+
+                    // 2. Auto-allocate remaining available serials from in_stock if main barcode was scanned
+                    $neededCount = (int)ceil($qty) - count($allocatedSerials);
+                    if ($neededCount > 0) {
+                        $autoSerials = ProductSerial::where('product_id', $product->id)
+                            ->where('branch_id', $branchId)
+                            ->where('status', 'in_stock')
+                            ->whereNotIn('id', $allocatedSerials)
+                            ->limit($neededCount)
+                            ->get();
+
+                        foreach ($autoSerials as $pSerial) {
                             $pSerial->update([
                                 'status' => 'sold',
                                 'sale_item_id' => $saleItem->id,
