@@ -31,47 +31,51 @@ return new class extends Migration
         });
 
         // 2. Create payrolls table (Monthly payroll records)
-        Schema::create('payrolls', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('branch_id')->nullable()->constrained('branches')->onDelete('set null');
-            $table->unsignedSmallInteger('year');
-            $table->unsignedTinyInteger('month'); // 1 to 12
-            $table->decimal('basic_salary', 12, 2)->default(0);
-            $table->decimal('total_allowances', 12, 2)->default(0);
-            $table->decimal('total_bonuses', 12, 2)->default(0);
-            $table->decimal('total_commissions', 12, 2)->default(0);
-            $table->decimal('total_deductions', 12, 2)->default(0);
-            $table->decimal('total_advances', 12, 2)->default(0);
-            $table->decimal('net_salary', 12, 2)->default(0);
-            $table->enum('status', ['draft', 'approved', 'paid'])->default('draft');
-            $table->foreignId('wallet_id')->nullable()->constrained('wallets')->onDelete('set null');
-            $table->foreignId('expense_id')->nullable()->constrained('expenses')->onDelete('set null');
-            $table->timestamp('approved_at')->nullable();
-            $table->foreignId('approved_by')->nullable()->constrained('users')->onDelete('set null');
-            $table->timestamp('paid_at')->nullable();
-            $table->foreignId('paid_by')->nullable()->constrained('users')->onDelete('set null');
-            $table->text('notes')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('payrolls')) {
+            Schema::create('payrolls', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+                $table->foreignId('branch_id')->nullable()->constrained('branches')->onDelete('set null');
+                $table->unsignedSmallInteger('year');
+                $table->unsignedTinyInteger('month'); // 1 to 12
+                $table->decimal('basic_salary', 12, 2)->default(0);
+                $table->decimal('total_allowances', 12, 2)->default(0);
+                $table->decimal('total_bonuses', 12, 2)->default(0);
+                $table->decimal('total_commissions', 12, 2)->default(0);
+                $table->decimal('total_deductions', 12, 2)->default(0);
+                $table->decimal('total_advances', 12, 2)->default(0);
+                $table->decimal('net_salary', 12, 2)->default(0);
+                $table->enum('status', ['draft', 'approved', 'paid'])->default('draft');
+                $table->foreignId('wallet_id')->nullable()->constrained('wallets')->onDelete('set null');
+                $table->foreignId('expense_id')->nullable()->constrained('expenses')->onDelete('set null');
+                $table->timestamp('approved_at')->nullable();
+                $table->foreignId('approved_by')->nullable()->constrained('users')->onDelete('set null');
+                $table->timestamp('paid_at')->nullable();
+                $table->foreignId('paid_by')->nullable()->constrained('users')->onDelete('set null');
+                $table->text('notes')->nullable();
+                $table->timestamps();
 
-            $table->unique(['user_id', 'year', 'month']);
-        });
+                $table->unique(['user_id', 'year', 'month']);
+            });
+        }
 
         // 3. Create employee_adjustments table (Advances, Deductions, Bonuses, Allowances)
-        Schema::create('employee_adjustments', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('branch_id')->nullable()->constrained('branches')->onDelete('set null');
-            $table->enum('type', ['advance', 'deduction', 'bonus', 'allowance', 'commission']);
-            $table->decimal('amount', 12, 2);
-            $table->date('date');
-            $table->text('reason')->nullable();
-            $table->enum('status', ['pending', 'settled', 'cancelled'])->default('pending');
-            $table->foreignId('payroll_id')->nullable()->constrained('payrolls')->onDelete('set null');
-            $table->foreignId('wallet_id')->nullable()->constrained('wallets')->onDelete('set null'); // if advance was paid from cash wallet
-            $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('employee_adjustments')) {
+            Schema::create('employee_adjustments', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+                $table->foreignId('branch_id')->nullable()->constrained('branches')->onDelete('set null');
+                $table->enum('type', ['advance', 'deduction', 'bonus', 'allowance', 'commission']);
+                $table->decimal('amount', 12, 2);
+                $table->date('date');
+                $table->text('reason')->nullable();
+                $table->enum('status', ['pending', 'settled', 'cancelled'])->default('pending');
+                $table->foreignId('payroll_id')->nullable()->constrained('payrolls')->onDelete('set null');
+                $table->foreignId('wallet_id')->nullable()->constrained('wallets')->onDelete('set null'); // if advance was paid from cash wallet
+                $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
+                $table->timestamps();
+            });
+        }
     }
 
     /**
