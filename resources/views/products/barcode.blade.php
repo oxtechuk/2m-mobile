@@ -791,11 +791,11 @@
 
                             <!-- Middle Section: QR Code OR Barcode SVG -->
                             <template x-if="item.code_type === 'qr'">
-                                <div class="my-0.5 qr-container" :id="'barcode-qr-' + item.id + '-' + copy"></div>
+                                <div class="my-0.5 qr-container" :id="'barcode-qr-' + String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_') + '-' + copy"></div>
                             </template>
                             <template x-if="item.code_type !== 'qr'">
                                 <div class="my-0.5 flex justify-center items-center w-full overflow-hidden">
-                                    <svg :id="'barcode-svg-' + item.id + '-' + copy" class="barcode-svg max-w-full"></svg>
+                                    <svg :id="'barcode-svg-' + String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_') + '-' + copy" class="barcode-svg max-w-full"></svg>
                                 </div>
                             </template>
 
