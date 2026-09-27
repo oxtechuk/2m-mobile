@@ -63,9 +63,9 @@ body {
 
 /* Sidebar Active states */
 .sidebar-link-active {
-    background: linear-gradient(90deg, rgba(212, 20, 20, 0.2) 0%, rgba(212, 20, 20, 0.05) 100%);
-    border-right: 4px solid var(--primary);
-    color: #FFFFFF !important;
+    background: rgba(212, 20, 20, 0.15) !important;
+    color: #D41414 !important;
+    font-weight: 700 !important;
 }
 
 /* Light Theme Overrides */
@@ -219,8 +219,9 @@ html.light aside .text-gray-400:hover {
     background-color: rgba(0, 0, 0, 0.03) !important;
 }
 html.light aside .sidebar-link-active {
-    background: linear-gradient(90deg, rgba(212, 20, 20, 0.1) 0%, rgba(212, 20, 20, 0.02) 100%) !important;
+    background: rgba(212, 20, 20, 0.1) !important;
     color: #D41414 !important;
+    font-weight: 700 !important;
 }
 html.light .h-px.bg-white\/5 {
     background-color: rgba(0, 0, 0, 0.08) !important;
