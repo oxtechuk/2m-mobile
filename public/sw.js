@@ -35,6 +35,11 @@ self.addEventListener('fetch', (event) => {
     // Only handle GET requests
     if (event.request.method !== 'GET') return;
 
+    // Skip non-http/https schemes (e.g. chrome-extension://)
+    if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) {
+        return;
+    }
+
     // Skip API sync & POST endpoints from SW caching
     if (event.request.url.includes('/api/v1/sync') || event.request.url.includes('/logout')) {
         return;

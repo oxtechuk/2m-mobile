@@ -105,6 +105,24 @@
                     <x-input-error :messages="$errors->get('category_id')" class="text-xs text-rose-500 mt-1" />
                 </div>
 
+                <!-- Primary Supplier -->
+                <div class="space-y-1">
+                    <label for="primary_supplier_id" class="block text-xs font-semibold text-gray-300">المورد الرئيسي للمنتج <span class="text-xs text-gray-500 font-normal">(اختياري)</span></label>
+                    <select 
+                        name="primary_supplier_id" 
+                        id="primary_supplier_id" 
+                        class="block w-full px-3 py-2 bg-[#0a0a0a] border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#D41414] focus:ring-1 focus:ring-[#D41414] transition text-xs"
+                    >
+                        <option value="">-- بدون تحديد مورد رئيسي --</option>
+                        @foreach($suppliers as $sup)
+                            <option value="{{ $sup->id }}" {{ old('primary_supplier_id') == $sup->id ? 'selected' : '' }}>
+                                {{ $sup->name }} {{ $sup->company_name ? "({$sup->company_name})" : '' }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <x-input-error :messages="$errors->get('primary_supplier_id')" class="text-xs text-rose-500 mt-1" />
+                </div>
+
                 <!-- Unit -->
                 <div class="space-y-1">
                     <label for="unit" class="block text-xs font-semibold text-gray-300">الوحدة <span class="text-rose-500">*</span></label>

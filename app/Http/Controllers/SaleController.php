@@ -10,6 +10,7 @@ use App\Models\ProductSerial;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Models\Customer;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -19,6 +20,7 @@ class SaleController extends Controller
     {
         $query = Sale::with(['customer', 'user', 'branch']);
         $branchId = selected_branch_id();
+
         if ($branchId !== 'all') {
             $query->where('branch_id', $branchId);
         }
@@ -28,18 +30,76 @@ class SaleController extends Controller
             $query->where('user_id', Auth::id());
         }
 
+        // Date Filter Period (Default: 'today')
+        $period = $request->input('period', 'today');
+        $fromDate = null;
+        $toDate = null;
+
+        switch ($period) {
+            case 'today':
+                $fromDate = Carbon::today()->startOfDay();
+                $toDate = Carbon::today()->endOfDay();
+                $query->whereBetween('created_at', [$fromDate, $toDate]);
+                break;
+            case 'yesterday':
+                $fromDate = Carbon::yesterday()->startOfDay();
+                $toDate = Carbon::yesterday()->endOfDay();
+                $query->whereBetween('created_at', [$fromDate, $toDate]);
+                break;
+            case 'this_week':
+                $fromDate = Carbon::now()->startOfWeek();
+                $toDate = Carbon::now()->endOfWeek();
+                $query->whereBetween('created_at', [$fromDate, $toDate]);
+                break;
+            case 'this_month':
+                $fromDate = Carbon::now()->startOfMonth();
+                $toDate = Carbon::now()->endOfMonth();
+                $query->whereBetween('created_at', [$fromDate, $toDate]);
+                break;
+            case 'custom':
+                if ($request->filled('from_date')) {
+                    $fromDate = Carbon::parse($request->input('from_date'))->startOfDay();
+                }
+                if ($request->filled('to_date')) {
+                    $toDate = Carbon::parse($request->input('to_date'))->endOfDay();
+                }
+                if ($fromDate && $toDate) {
+                    $query->whereBetween('created_at', [$fromDate, $toDate]);
+                } elseif ($fromDate) {
+                    $query->where('created_at', '>=', $fromDate);
+                } elseif ($toDate) {
+                    $query->where('created_at', '<=', $toDate);
+                }
+                break;
+            case 'all':
+            default:
+                // No date restriction for all time
+                break;
+        }
+
         if ($request->filled('search')) {
             $search = $request->input('search');
-            $query->where('invoice_number', 'like', "%{$search}%")
-                  ->orWhereHas('customer', function ($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('phone', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('invoice_number', 'like', "%{$search}%")
+                  ->orWhereHas('customer', function ($cq) use ($search) {
+                      $cq->where('name', 'like', "%{$search}%")
+                         ->orWhere('phone', 'like', "%{$search}%");
                   });
+            });
         }
+
+        // Summary Stats for filtered period
+        $statsQuery = clone $query;
+        $stats = [
+            'total_amount' => (clone $statsQuery)->where('status', 'completed')->sum('total'),
+            'total_count' => (clone $statsQuery)->where('status', 'completed')->count(),
+            'cash_sales' => (clone $statsQuery)->where('status', 'completed')->where('payment_method', 'cash')->sum('total'),
+            'other_sales' => (clone $statsQuery)->where('status', 'completed')->where('payment_method', '!=', 'cash')->sum('total'),
+        ];
 
         $sales = $query->latest()->get();
 
-        return view('sales.index', compact('sales'));
+        return view('sales.index', compact('sales', 'period', 'fromDate', 'toDate', 'stats'));
     }
 
     public function show($id)

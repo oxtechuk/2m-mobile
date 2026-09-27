@@ -18,6 +18,9 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\SalesRepController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -63,6 +66,13 @@ Route::middleware(['auth', 'check.branch', 'audit.log'])->group(function () {
     // Customers
     Route::resource('customers', CustomerController::class);
 
+    // Suppliers & Supplier Payments
+    Route::post('/suppliers/{supplier}/pay', [SupplierController::class, 'paySupplier'])->name('suppliers.pay');
+    Route::resource('suppliers', SupplierController::class);
+
+    // Purchases & Stock Inward
+    Route::resource('purchases', PurchaseController::class)->only(['index', 'create', 'store', 'show']);
+
     // Categories
     Route::resource('categories', CategoryController::class);
 
@@ -101,6 +111,11 @@ Route::middleware(['auth', 'check.branch', 'audit.log'])->group(function () {
     Route::get('/sales/{sale}/invoice', [SaleController::class, 'invoice'])->name('sales.invoice');
     Route::post('/sales/{sale}/direct-print', [SaleController::class, 'directPrint'])->name('sales.direct-print');
     Route::post('/sales/{sale}/void', [SaleController::class, 'void'])->name('sales.void')->middleware('can:process-return');
+
+    // Sales Representatives & Performance Hub
+    Route::get('/sales-reps', [SalesRepController::class, 'index'])->name('sales-reps.index');
+    Route::get('/sales-reps/{rep}', [SalesRepController::class, 'show'])->name('sales-reps.show');
+    Route::patch('/sales-reps/{rep}/commission-rate', [SalesRepController::class, 'updateCommissionRate'])->name('sales-reps.update-commission');
 
     // Returns (Protected by process-return permission)
     Route::middleware('can:process-return')->group(function () {

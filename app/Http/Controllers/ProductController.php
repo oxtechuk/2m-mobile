@@ -10,6 +10,7 @@ use App\Models\Branch;
 use App\Models\Inventory;
 use App\Models\InventoryMovement;
 use App\Models\ProductSerial;
+use App\Models\Supplier;
 
 class ProductController extends Controller
 {
@@ -17,7 +18,7 @@ class ProductController extends Controller
     {
         $branchId = selected_branch_id();
 
-        $query = Product::with(['category', 'inventories' => function ($q) use ($branchId) {
+        $query = Product::with(['category', 'supplier', 'inventories' => function ($q) use ($branchId) {
             if ($branchId !== 'all') {
                 $q->where('branch_id', $branchId);
             }
@@ -46,7 +47,8 @@ class ProductController extends Controller
     {
         $categories = Category::all();
         $branches = Branch::all();
-        return view('products.create', compact('categories', 'branches'));
+        $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
+        return view('products.create', compact('categories', 'branches', 'suppliers'));
     }
 
     public function store(Request $request)
@@ -56,6 +58,7 @@ class ProductController extends Controller
             'barcode' => 'required|string|max:100|unique:products,barcode',
             'sku' => 'nullable|string|max:50|unique:products,sku',
             'category_id' => 'required|exists:categories,id',
+            'primary_supplier_id' => 'nullable|exists:suppliers,id',
             'branch_id' => 'nullable|exists:branches,id',
             'opening_stock' => 'nullable|integer|min:0',
             'description' => 'nullable|string',
@@ -142,8 +145,9 @@ class ProductController extends Controller
         }])->findOrFail($id);
         $categories = Category::all();
         $branches = Branch::all();
+        $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
         $currentStock = $product->inventories->first()?->quantity ?? 0;
-        return view('products.edit', compact('product', 'categories', 'branches', 'currentStock'));
+        return view('products.edit', compact('product', 'categories', 'branches', 'suppliers', 'currentStock'));
     }
 
     public function update(Request $request, $id)
@@ -155,6 +159,7 @@ class ProductController extends Controller
             'barcode' => 'required|string|max:100|unique:products,barcode,' . $product->id,
             'sku' => 'nullable|string|max:50|unique:products,sku,' . $product->id,
             'category_id' => 'required|exists:categories,id',
+            'primary_supplier_id' => 'nullable|exists:suppliers,id',
             'branch_id' => 'nullable|exists:branches,id',
             'current_stock' => 'nullable|integer|min:0',
             'description' => 'nullable|string',

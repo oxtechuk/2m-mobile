@@ -20,7 +20,7 @@ class ReportController extends Controller
     public function sales(Request $request)
     {
         $branchId = selected_branch_id();
-        $period = $request->input('period', 'this_month');
+        $period = $request->input('period', 'today');
         
         // Date Filtering Logic
         $fromDate = null;
@@ -28,6 +28,8 @@ class ReportController extends Controller
 
         switch ($period) {
             case 'today':
+            default:
+                $period = 'today';
                 $fromDate = Carbon::today();
                 $toDate = Carbon::today()->endOfDay();
                 break;
@@ -39,19 +41,17 @@ class ReportController extends Controller
                 $fromDate = Carbon::now()->startOfWeek();
                 $toDate = Carbon::now()->endOfWeek();
                 break;
+            case 'this_month':
+                $fromDate = Carbon::now()->startOfMonth();
+                $toDate = Carbon::now()->endOfMonth();
+                break;
             case 'last_month':
                 $fromDate = Carbon::now()->subMonth()->startOfMonth();
                 $toDate = Carbon::now()->subMonth()->endOfMonth();
                 break;
             case 'custom':
-                $fromDate = $request->filled('from_date') ? Carbon::parse($request->input('from_date'))->startOfDay() : Carbon::now()->startOfMonth();
-                $toDate = $request->filled('to_date') ? Carbon::parse($request->input('to_date'))->endOfDay() : Carbon::now()->endOfDay();
-                break;
-            case 'this_month':
-            default:
-                $period = 'this_month';
-                $fromDate = Carbon::now()->startOfMonth();
-                $toDate = Carbon::now()->endOfMonth();
+                $fromDate = $request->filled('from_date') ? Carbon::parse($request->input('from_date'))->startOfDay() : Carbon::today()->startOfDay();
+                $toDate = $request->filled('to_date') ? Carbon::parse($request->input('to_date'))->endOfDay() : Carbon::today()->endOfDay();
                 break;
         }
 

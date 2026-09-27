@@ -47,11 +47,22 @@ class TransactionController extends Controller
                 });
             }
 
-            if ($request->filled('from_date')) {
-                $query->whereDate('created_at', '>=', $request->input('from_date'));
-            }
-            if ($request->filled('to_date')) {
-                $query->whereDate('created_at', '<=', $request->input('to_date'));
+            $period = $request->input('period', 'today');
+            if ($period === 'today') {
+                $query->whereDate('created_at', \Carbon\Carbon::today());
+            } elseif ($period === 'yesterday') {
+                $query->whereDate('created_at', \Carbon\Carbon::yesterday());
+            } elseif ($period === 'this_week') {
+                $query->whereBetween('created_at', [\Carbon\Carbon::now()->startOfWeek(), \Carbon\Carbon::now()->endOfWeek()]);
+            } elseif ($period === 'this_month') {
+                $query->whereBetween('created_at', [\Carbon\Carbon::now()->startOfMonth(), \Carbon\Carbon::now()->endOfMonth()]);
+            } elseif ($period === 'custom') {
+                if ($request->filled('from_date')) {
+                    $query->whereDate('created_at', '>=', $request->input('from_date'));
+                }
+                if ($request->filled('to_date')) {
+                    $query->whereDate('created_at', '<=', $request->input('to_date'));
+                }
             }
 
             $statsQuery = clone $query;
@@ -152,11 +163,22 @@ class TransactionController extends Controller
                 });
             }
 
-            if ($request->filled('from_date')) {
-                $query->whereDate('created_at', '>=', $request->input('from_date'));
-            }
-            if ($request->filled('to_date')) {
-                $query->whereDate('created_at', '<=', $request->input('to_date'));
+            $period = $request->input('period', 'today');
+            if ($period === 'today') {
+                $query->whereDate('created_at', \Carbon\Carbon::today());
+            } elseif ($period === 'yesterday') {
+                $query->whereDate('created_at', \Carbon\Carbon::yesterday());
+            } elseif ($period === 'this_week') {
+                $query->whereBetween('created_at', [\Carbon\Carbon::now()->startOfWeek(), \Carbon\Carbon::now()->endOfWeek()]);
+            } elseif ($period === 'this_month') {
+                $query->whereBetween('created_at', [\Carbon\Carbon::now()->startOfMonth(), \Carbon\Carbon::now()->endOfMonth()]);
+            } elseif ($period === 'custom') {
+                if ($request->filled('from_date')) {
+                    $query->whereDate('created_at', '>=', $request->input('from_date'));
+                }
+                if ($request->filled('to_date')) {
+                    $query->whereDate('created_at', '<=', $request->input('to_date'));
+                }
             }
 
             $statsQuery = clone $query;
@@ -175,7 +197,8 @@ class TransactionController extends Controller
                 'totalCredits',
                 'totalDebits',
                 'netBalance',
-                'totalCount'
+                'totalCount',
+                'period'
             ));
         }
     }

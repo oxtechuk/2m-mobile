@@ -361,10 +361,10 @@
                 <td class="font-bold">المجموع الفرعي:</td>
                 <td class="text-left font-mono font-bold" style="white-space: nowrap;">{{ number_format($sale->subtotal, 2) }} {{ setting('default_currency', 'ج.م') }}</td>
             </tr>
-            @if($sale->tax > 0)
+            @if(($sale->tax_amount ?? $sale->tax ?? 0) > 0)
             <tr>
-                <td class="font-bold">الضريبة (14%):</td>
-                <td class="text-left font-mono" style="white-space: nowrap;">{{ number_format($sale->tax, 2) }} {{ setting('default_currency', 'ج.م') }}</td>
+                <td class="font-bold">الضريبة ({{ number_format($sale->tax_rate ?? 0, 0) }}%):</td>
+                <td class="text-left font-mono" style="white-space: nowrap;">{{ number_format($sale->tax_amount ?? $sale->tax ?? 0, 2) }} {{ setting('default_currency', 'ج.م') }}</td>
             </tr>
             @endif
             @if($sale->discount > 0)

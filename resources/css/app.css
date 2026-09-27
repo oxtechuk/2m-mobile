@@ -80,7 +80,7 @@ html.light .glass-panel {
 }
 
 /* =========================================================
-   SOLID ACTION BUTTONS TEXT COLOR FIX (PURE WHITE ON FILLED BUTTONS)
+   SOLID ACTION BUTTONS & BADGES TEXT COLOR FIX
    ========================================================= */
 .bg-\[\#D41414\],
 .bg-\[\#A30F0F\],
@@ -92,10 +92,14 @@ button.bg-rose-600,
 a.bg-rose-600,
 button.bg-emerald-600,
 a.bg-emerald-600,
+button.bg-indigo-600,
+a.bg-indigo-600,
 button.bg-blue-600,
 a.bg-blue-600,
-button.bg-gray-800,
-a.bg-gray-800,
+button.bg-purple-600,
+a.bg-purple-600,
+button.bg-amber-500,
+a.bg-amber-500,
 .glow-primary,
 .btn-primary,
 .btn-print,
@@ -109,21 +113,35 @@ button.bg-\[\#D41414\] *,
 a.bg-\[\#D41414\] *,
 button.bg-red-600 *,
 a.bg-red-600 *,
+button.bg-indigo-600 *,
+a.bg-indigo-600 *,
+button.bg-emerald-600 *,
+a.bg-emerald-600 *,
 .btn-primary *,
 .btn-print *,
 .btn-direct-print * {
     color: #FFFFFF !important;
 }
 
-html.light .text-white {
-    color: #111827;
+/* Light Theme Overrides (Scoped so filled buttons remain white) */
+html.light .glass-panel > h1.text-white,
+html.light .glass-panel > h2.text-white,
+html.light .glass-panel > h3.text-white,
+html.light td.text-white,
+html.light p.text-white {
+    color: #111827 !important;
 }
-html.light .bg-\[\#D41414\] .text-white,
-html.light button.bg-\[\#D41414\] .text-white,
-html.light a.bg-\[\#D41414\] .text-white,
-html.light .glow-primary .text-white {
+
+html.light button.bg-\[\#D41414\] *,
+html.light a.bg-\[\#D41414\] *,
+html.light button.bg-indigo-600 *,
+html.light a.bg-indigo-600 *,
+html.light button.bg-emerald-600 *,
+html.light a.bg-emerald-600 *,
+html.light .glow-primary * {
     color: #FFFFFF !important;
 }
+
 html.light .text-gray-300 {
     color: #374151 !important;
 }

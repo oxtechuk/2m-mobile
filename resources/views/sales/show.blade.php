@@ -94,8 +94,8 @@
                     <span class="font-mono text-white">{{ number_format($sale->subtotal, 2) }} {{ setting('default_currency', 'ج.م') }}</span>
                 </div>
                 <div class="flex justify-between">
-                    <span>الضريبة (14% VAT):</span>
-                    <span class="font-mono text-white">{{ number_format($sale->tax, 2) }} {{ setting('default_currency', 'ج.م') }}</span>
+                    <span>الضريبة ({{ number_format($sale->tax_rate ?? 0, 0) }}% VAT):</span>
+                    <span class="font-mono text-white">{{ number_format($sale->tax_amount ?? $sale->tax ?? 0, 2) }} {{ setting('default_currency', 'ج.م') }}</span>
                 </div>
                 <div class="flex justify-between">
                     <span>الخصم المباشر:</span>

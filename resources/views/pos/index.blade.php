@@ -48,6 +48,7 @@
 
     <script>
         window.defaultCurrency = "{{ setting('default_currency', 'ج.م') }}";
+        window.posTaxRate = {{ floatval(setting('tax_percentage', 0)) }};
         window.posProducts = @json($products);
 
         function posApp(initialProducts) {
@@ -361,11 +362,12 @@
                 cartCount() {
                     return this.cart.reduce((sum, item) => sum + item.qty, 0);
                 },
+                taxRate: window.posTaxRate || 0,
                 subtotal() {
                     return this.cart.reduce((sum, item) => sum + (item.selling_price * item.qty), 0);
                 },
                 tax() {
-                    return this.subtotal() * 0.14;
+                    return this.subtotal() * (this.taxRate / 100);
                 },
                 total() {
                     return this.subtotal() + this.tax();
@@ -694,7 +696,7 @@
                         <span class="font-mono font-bold text-gray-900 dark:text-white" x-text="numberFormat(subtotal()) + ' ' + window.defaultCurrency">0.00</span>
                     </div>
                     <div class="flex justify-between text-xs text-gray-700 dark:text-gray-300">
-                        <span>الضريبة (14% VAT):</span>
+                        <span x-text="'الضريبة (' + taxRate + '% VAT):'"></span>
                         <span class="font-mono font-bold text-amber-600 dark:text-amber-400" x-text="numberFormat(tax()) + ' ' + window.defaultCurrency">0.00</span>
                     </div>
                     <div class="flex justify-between text-sm font-bold text-gray-900 dark:text-white border-t border-gray-200 dark:border-white/10 pt-2">
@@ -827,7 +829,6 @@
                 </div>
             </form>
         </div>
-    </div>
 
     <!-- Shift Management Modal (فتح / ملخص / تسليم / قفل وردية) -->
     <div 

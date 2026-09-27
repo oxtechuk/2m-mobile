@@ -385,8 +385,33 @@
 
             <!-- Filter & Search Form -->
             <div class="glass-panel p-4 rounded-2xl space-y-3">
-                <form method="GET" action="{{ route('transactions.index') }}" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+                <!-- Date Period Quick Selector Pills -->
+                <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+                    <a href="{{ route('transactions.index', ['view_mode' => 'financial', 'period' => 'today']) }}" 
+                       class="px-3.5 py-1.5 rounded-xl font-bold transition shrink-0 {{ ($period ?? 'today') === 'today' ? 'bg-[#D41414] text-white shadow-md glow-primary' : 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10' }}">
+                        <i class="fa-solid fa-calendar-day text-[11px] ml-1"></i>اليوم (الافتراضي)
+                    </a>
+                    <a href="{{ route('transactions.index', ['view_mode' => 'financial', 'period' => 'yesterday']) }}" 
+                       class="px-3.5 py-1.5 rounded-xl font-bold transition shrink-0 {{ ($period ?? '') === 'yesterday' ? 'bg-[#D41414] text-white shadow-md glow-primary' : 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10' }}">
+                        <i class="fa-solid fa-clock-rotate-left text-[11px] ml-1"></i>أمس
+                    </a>
+                    <a href="{{ route('transactions.index', ['view_mode' => 'financial', 'period' => 'this_week']) }}" 
+                       class="px-3.5 py-1.5 rounded-xl font-bold transition shrink-0 {{ ($period ?? '') === 'this_week' ? 'bg-[#D41414] text-white shadow-md glow-primary' : 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10' }}">
+                        <i class="fa-solid fa-calendar-week text-[11px] ml-1"></i>هذا الأسبوع
+                    </a>
+                    <a href="{{ route('transactions.index', ['view_mode' => 'financial', 'period' => 'this_month']) }}" 
+                       class="px-3.5 py-1.5 rounded-xl font-bold transition shrink-0 {{ ($period ?? '') === 'this_month' ? 'bg-[#D41414] text-white shadow-md glow-primary' : 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10' }}">
+                        <i class="fa-solid fa-calendar-days text-[11px] ml-1"></i>هذا الشهر
+                    </a>
+                    <a href="{{ route('transactions.index', ['view_mode' => 'financial', 'period' => 'all']) }}" 
+                       class="px-3.5 py-1.5 rounded-xl font-bold transition shrink-0 {{ ($period ?? '') === 'all' ? 'bg-[#D41414] text-white shadow-md glow-primary' : 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10' }}">
+                        <i class="fa-solid fa-infinity text-[11px] ml-1"></i>جميع الأوقات
+                    </a>
+                </div>
+
+                <form method="GET" action="{{ route('transactions.index') }}" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 pt-2 border-t border-white/5">
                     <input type="hidden" name="view_mode" value="financial">
+                    <input type="hidden" name="period" value="custom">
 
                     <div class="relative sm:col-span-2">
                         <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">

@@ -26,6 +26,7 @@ class Product extends Model
         'has_serials',
         'image',
         'is_active',
+        'primary_supplier_id',
     ];
 
     protected $casts = [
@@ -36,6 +37,11 @@ class Product extends Model
         'has_serials' => 'boolean',
         'is_active' => 'boolean',
     ];
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class, 'primary_supplier_id');
+    }
 
     public function category()
     {

@@ -1,7 +1,9 @@
 @php
     $activeGroup = null;
-    if (request()->routeIs('pos.*') || request()->routeIs('sales.*') || request()->routeIs('returns.*') || request()->routeIs('customers.*')) {
+    if (request()->routeIs('pos.*') || request()->routeIs('sales.*') || request()->routeIs('sales-reps.*') || request()->routeIs('returns.*') || request()->routeIs('customers.*')) {
         $activeGroup = 'sales';
+    } elseif (request()->routeIs('suppliers.*') || request()->routeIs('purchases.*')) {
+        $activeGroup = 'purchases';
     } elseif (request()->routeIs('products.*') || request()->routeIs('inventory.*') || request()->routeIs('categories.*')) {
         $activeGroup = 'inventory';
     } elseif (request()->routeIs('maintenance.*')) {
@@ -109,9 +111,13 @@
                     <span>شاشة البيع (POS)</span>
                 </a>
                 @can('manage-sales')
-                <a href="{{ route('sales.index') }}" class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition {{ request()->routeIs('sales.*') ? 'text-[#D41414] font-bold bg-[#D41414]/10' : '' }}">
+                <a href="{{ route('sales.index') }}" class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition {{ request()->routeIs('sales.index') || request()->routeIs('sales.show') ? 'text-[#D41414] font-bold bg-[#D41414]/10' : '' }}">
                     <i class="fa-solid fa-file-invoice-dollar text-xs w-4 text-center"></i>
                     <span>سجل الفواتير</span>
+                </a>
+                <a href="{{ route('sales-reps.index') }}" class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition {{ request()->routeIs('sales-reps.*') ? 'text-amber-400 font-bold bg-amber-500/10' : '' }}">
+                    <i class="fa-solid fa-trophy text-xs w-4 text-center text-amber-400"></i>
+                    <span>أداء ومندوبي المبيعات</span>
                 </a>
                 @endcan
                 @can('process-return')
@@ -127,6 +133,39 @@
             </div>
         </div>
         @endif
+
+        <!-- 🚚 GROUP: المشتريات والموردين (Purchases & Suppliers) -->
+        <div class="space-y-1">
+            <button 
+                type="button"
+                @click="toggleGroup('purchases')"
+                class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-gray-300 hover:bg-white/5 hover:text-white transition cursor-pointer"
+                :class="openGroup === 'purchases' ? 'bg-white/5 text-white' : ''"
+                :title="!sidebarOpen ? 'المشتريات والموردين' : ''"
+            >
+                <div class="flex items-center space-x-3 space-x-reverse">
+                    <i class="fa-solid fa-truck-ramp-box w-5 text-center text-sm" :class="openGroup === 'purchases' ? 'text-indigo-400' : 'text-gray-400'"></i>
+                    <span x-show="sidebarOpen" class="font-bold">المشتريات والموردين</span>
+                </div>
+                <i x-show="sidebarOpen" class="fa-solid fa-chevron-down text-[10px] text-gray-500 transition-transform duration-200" :class="openGroup === 'purchases' ? 'rotate-180 text-white' : ''"></i>
+            </button>
+
+            <!-- Sublinks -->
+            <div x-show="sidebarOpen && openGroup === 'purchases'" x-collapse class="pr-6 pl-2 space-y-1 pt-0.5">
+                <a href="{{ route('purchases.create') }}" class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition {{ request()->routeIs('purchases.create') ? 'text-indigo-400 font-bold bg-indigo-500/10' : '' }}">
+                    <i class="fa-solid fa-cart-plus text-xs w-4 text-center"></i>
+                    <span>فاتورة توريد جديدة</span>
+                </a>
+                <a href="{{ route('purchases.index') }}" class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition {{ request()->routeIs('purchases.index') || request()->routeIs('purchases.show') ? 'text-indigo-400 font-bold bg-indigo-500/10' : '' }}">
+                    <i class="fa-solid fa-receipt text-xs w-4 text-center"></i>
+                    <span>سجل فواتير الشراء</span>
+                </a>
+                <a href="{{ route('suppliers.index') }}" class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition {{ request()->routeIs('suppliers.*') ? 'text-indigo-400 font-bold bg-indigo-500/10' : '' }}">
+                    <i class="fa-solid fa-building-user text-xs w-4 text-center"></i>
+                    <span>دليل وقائمة الموردين</span>
+                </a>
+            </div>
+        </div>
 
         <!-- 📦 GROUP 2: المخزون والمنتجات (Products & Stock) -->
         @if(auth()->user()->can('manage-products') || auth()->user()->can('manage-inventory'))
