@@ -448,7 +448,8 @@
             <div class="flex items-center gap-2.5 text-xs">
                 <!-- Shift Control Button -->
                 <button 
-                    @click="openShiftModal('summary')" 
+                    type="button"
+                    @click.stop.prevent="openShiftModal('summary')" 
                     class="px-3 py-1.5 rounded-xl border text-xs font-bold transition shadow-sm flex items-center gap-1.5 cursor-pointer"
                     :class="shiftInfo && shiftInfo.has_open_shift ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20'"
                 >
@@ -834,6 +835,7 @@
     <div 
         x-show="showShiftModal" 
         @keydown.escape.window="if(shiftInfo && shiftInfo.has_open_shift) showShiftModal = false; else showShiftModal = true;"
+        @click.self="if(shiftInfo && shiftInfo.has_open_shift) showShiftModal = false;"
         x-transition:enter="transition ease-out duration-200"
         x-transition:enter-start="opacity-0 scale-95"
         x-transition:enter-end="opacity-100 scale-100"
@@ -844,7 +846,6 @@
         style="display: none;"
     >
         <div 
-            @click.outside="if(shiftInfo && shiftInfo.has_open_shift) showShiftModal = false; else showShiftModal = true;" 
             class="bg-[#121212] border border-rose-500/30 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-5 text-right relative overflow-hidden"
         >
             <!-- Background Accent Glow -->

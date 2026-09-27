@@ -62,23 +62,7 @@
                     {{ auth()->user()->branch->name ?? 'بدون فرع' }}
                 </span>
             @endif
-            
-            <!-- Cashier Shift Status Indicator -->
-            @php
-                $openShift = \App\Models\CashShift::where('user_id', auth()->id())->where('status', 'open')->first();
-            @endphp
-            @if($openShift)
-                <a href="{{ route('pos.index') }}" title="إدارة وقفل الوردية" class="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition flex items-center text-xs font-semibold">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1.5 animate-pulse"></span>
-                    <span>الوردية مفتوحة</span>
-                </a>
-            @else
-                <a href="{{ route('pos.index') }}" title="فتح وردية جديدة للبيع" class="px-2.5 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition flex items-center text-xs font-semibold">
-                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500 ml-1.5"></span>
-                    <span>الوردية مغلقة (فتح)</span>
-                </a>
-            @endif
-            
+        
             @can('create-sale')
             <a href="{{ route('pos.index') }}" class="px-2.5 py-1 rounded bg-[#D41414]/10 border border-[#D41414]/20 hover:bg-[#D41414] hover:text-white text-[#D41414] transition text-xs flex items-center font-bold">
                 <i class="fa-solid fa-cash-register ml-1"></i>
@@ -86,29 +70,7 @@
             </a>
             @endcan
 
-            <!-- Offline / Cloud Sync Status Badge Component -->
-            <div 
-                x-data="offlineSyncWidget()" 
-                x-init="initWidget()"
-                class="relative flex items-center"
-            >
-                <button 
-                    type="button" 
-                    @click="triggerManualSync()" 
-                    :disabled="isSyncing"
-                    class="px-2.5 py-1 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
-                    :class="isOnline ? (isSyncing ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400') : 'bg-rose-500/10 border-rose-500/30 text-rose-400'"
-                    :title="isOnline ? 'انقر للمزامنة الفورية مع سيرفر aaPanel' : 'أوفلاين - المعاملات يتم حفظها محلياً وسيتم مزامنتها عند اتصال الإنترنت'"
-                >
-                    <span 
-                        class="w-2 h-2 rounded-full shrink-0"
-                        :class="isOnline ? (isSyncing ? 'bg-amber-400 animate-spin' : 'bg-emerald-500 animate-pulse') : 'bg-rose-500'"
-                    ></span>
-                    <span x-text="statusText"></span>
-                    <i class="fa-solid" :class="isSyncing ? 'fa-spinner fa-spin' : 'fa-rotate text-[10px] opacity-70 hover:opacity-100'"></i>
-                </button>
-            </div>
-
+          
             <script>
             function offlineSyncWidget() {
                 return {
