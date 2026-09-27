@@ -848,8 +848,7 @@
         <div 
             class="bg-[#121212] border border-rose-500/30 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-5 text-right relative overflow-hidden"
         >
-            <!-- Background Accent Glow -->
-            <div class="absolute -top-24 -right-24 w-48 h-48 bg-[#D41414]/20 rounded-full blur-3xl pointer-events-none"></div>
+
 
             <!-- Modal Header -->
             <div class="flex items-center justify-between border-b border-white/10 pb-4">

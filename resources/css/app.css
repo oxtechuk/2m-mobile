@@ -53,12 +53,12 @@ body {
     box-shadow: 0 10px 20px rgba(212, 20, 20, 0.1);
 }
 
-/* Glow effects */
+/* Glow effects (disabled red glow) */
 .glow-primary {
-    box-shadow: 0 0 15px rgba(212, 20, 20, 0.4);
+    box-shadow: none;
 }
 .text-glow-primary {
-    text-shadow: 0 0 8px rgba(212, 20, 20, 0.6);
+    text-shadow: none;
 }
 
 /* Sidebar Active states */
